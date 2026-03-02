@@ -8,6 +8,7 @@ This index is the score for the Sinfonia docs set: start here to find concept gu
 
 ## Start Here
 
+- [Sinfonia Quick Prime](SINFONIA_QUICK_PRIME.md)
 - [Style Guide](style-guide.md)
 - [Getting Started](guides/getting-started.md)
 - [CLI Reference](reference/cli-reference.md)

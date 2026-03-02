@@ -24,6 +24,27 @@ describe("Story 2.1.1 maestro persona", () => {
     expect(content).toMatch(/resume/i);
   });
 
+  it("uses warmer conversational guidance without dropping orchestration cues", async () => {
+    const content = await readFile(join(process.cwd(), "agents/maestro.md"), "utf8");
+
+    expect(content).toContain("warm");
+    expect(content).toContain("conversational");
+    expect(content).toContain("stage status");
+    expect(content).toContain("blockers");
+    expect(content).toContain("next action");
+    expect(content).toContain("approval");
+  });
+
+  it("keeps generated maestro stub aligned with canonical persona guidance", async () => {
+    const personaContent = await readFile(join(process.cwd(), "agents/maestro.md"), "utf8");
+    const stubContent = await readFile(join(process.cwd(), ".opencode/agent/sinfonia-maestro.md"), "utf8");
+
+    expect(personaContent).toContain("Use a warm, conversational tone while staying action-first.");
+    expect(stubContent).toContain("Use a warm, conversational tone while staying action-first.");
+    expect(personaContent).toContain("Every stage update must include stage status, blockers (or explicit None), next action, and approval requirement when applicable.");
+    expect(stubContent).toContain("Every stage update must include stage status, blockers (or explicit None), next action, and approval requirement when applicable.");
+  });
+
   it("has a generated opencode maestro stub", async () => {
     const stubPath = join(process.cwd(), ".opencode/agent/sinfonia-maestro.md");
     await expect(access(stubPath)).resolves.toBeUndefined();
