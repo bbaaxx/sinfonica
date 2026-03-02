@@ -8,6 +8,7 @@ import {
   initPipeline,
   resolvePersona,
   WORKFLOW_PERSONA_MAP,
+  formatOrchestrationCue,
   dispatchStep,
   processReturnEnvelope,
   detectFailureType,
@@ -60,6 +61,13 @@ async function scaffoldReturnEnvelope(
   ].join('\n');
   await writeFile(filePath, content, 'utf8');
   return filePath;
+}
+
+function expectRequiredOrchestrationCue(cue: string): void {
+  expect(cue).toContain('Stage Status:');
+  expect(cue).toContain('Blockers:');
+  expect(cue).toContain('Next Action:');
+  expect(cue).toContain('Approval Required:');
 }
 
 // ─── CP1: Pipeline Definition & Initiation ───────────────────────────────────
@@ -276,6 +284,7 @@ describe('CP2 — Sequential Dispatch Routing', () => {
         );
         expect(result.persona).toBe(expectedPersona);
         expect(result.workflowName).toBe(workflow);
+        expectRequiredOrchestrationCue(result.orchestrationCue);
       }
     });
 
@@ -338,6 +347,36 @@ describe('CP2 — Sequential Dispatch Routing', () => {
   });
 });
 
+describe('Presentation guardrail — orchestration cue formatting', () => {
+  it('renders required cues with explicit no-blockers and no-approval markers', () => {
+    const cue = formatOrchestrationCue({
+      stageStatus: 'Stage 2/4 in-progress: create-spec delegated to amadeus.',
+      blockers: [],
+      nextAction: 'Wait for return envelope before approval decision.',
+      approvalRequired: false,
+    });
+
+    expect(cue).toContain('Stage Status: Stage 2/4 in-progress: create-spec delegated to amadeus.');
+    expect(cue).toContain('Blockers: None');
+    expect(cue).toContain('Next Action: Wait for return envelope before approval decision.');
+    expect(cue).toContain('Approval Required: No');
+  });
+
+  it('renders blocker and approval cues when present', () => {
+    const cue = formatOrchestrationCue({
+      stageStatus: 'Stage 2/4 blocked: revision requested from coda.',
+      blockers: ['Implementation artifact missing required evidence.'],
+      nextAction: 'Review revised return envelope and decide approve or reject.',
+      approvalRequired: true,
+    });
+
+    expect(cue).toContain('Stage Status: Stage 2/4 blocked: revision requested from coda.');
+    expect(cue).toContain('Blockers: Implementation artifact missing required evidence.');
+    expect(cue).toContain('Next Action: Review revised return envelope and decide approve or reject.');
+    expect(cue).toContain('Approval Required: Yes');
+  });
+});
+
 // ─── CP3: Approval Gate Integration ──────────────────────────────────────────
 
 describe('CP3 — Approval Gate Integration', () => {
@@ -373,6 +412,8 @@ describe('CP3 — Approval Gate Integration', () => {
 
     expect(result.outcome).toBe('advanced');
     expect(result.nextStepIndex).toBeDefined();
+    expectRequiredOrchestrationCue(result.orchestrationCue);
+    expect(result.orchestrationCue).toContain('Approval Required: No');
   });
 
   it('approve → workflow.md currentStepIndex increments', async () => {
@@ -448,6 +489,8 @@ describe('CP3 — Approval Gate Integration', () => {
 
     expect(['held', 'revision-sent']).toContain(result.outcome);
     expect(result.workflowIndex.frontmatter.workflowStatus).toBe('blocked');
+    expectRequiredOrchestrationCue(result.orchestrationCue);
+    expect(result.orchestrationCue).toContain('Approval Required: Yes');
   });
 
   it('reject → revision envelope created (outcome: revision-sent)', async () => {
@@ -579,6 +622,8 @@ describe('CP4 — Error Handling & Retry', () => {
       expect(result.envelopePath).toBeTruthy();
       const { existsSync } = await import('node:fs');
       expect(existsSync(result.envelopePath!)).toBe(true);
+      expectRequiredOrchestrationCue(result.orchestrationCue);
+      expect(result.orchestrationCue).toContain('Approval Required: No');
     });
 
     it('retry → augmented context includes failure notes', async () => {
@@ -647,6 +692,8 @@ describe('CP4 — Error Handling & Retry', () => {
 
       expect(result.action).toBe('skip');
       expect(result.workflowIndex.frontmatter.currentStepIndex).toBe(initialIndex + 1);
+      expectRequiredOrchestrationCue(result.orchestrationCue);
+      expect(result.orchestrationCue).toContain('Approval Required: No');
     });
 
     it('skip on last step → workflow.md status becomes complete', async () => {
@@ -688,6 +735,8 @@ describe('CP4 — Error Handling & Retry', () => {
 
       expect(result.action).toBe('abort');
       expect(result.workflowIndex.frontmatter.workflowStatus).toBe('failed');
+      expectRequiredOrchestrationCue(result.orchestrationCue);
+      expect(result.orchestrationCue).toContain('Approval Required: Yes');
     });
 
     it('abort → preserves full state (workflow.md still readable)', async () => {
@@ -739,6 +788,8 @@ describe('CP5 — Partial Execution & Resume', () => {
       expect(resume.sessionId).toBe(session.sessionId);
       expect(resume.currentStepIndex).toBe(session.workflowIndex.frontmatter.currentStepIndex);
       expect(resume.workflowIndex).toBeDefined();
+      expectRequiredOrchestrationCue(resume.orchestrationCue);
+      expect(resume.orchestrationCue).toContain('Approval Required: No');
     });
 
     it('can resume from mid-pipeline step N', async () => {
@@ -839,6 +890,8 @@ describe('CP5 — Partial Execution & Resume', () => {
       expect(resume.sessionId).toBe(session.sessionId);
       expect(resume.currentStepIndex).toBeDefined();
       expect(resume.workflowIndex).toBeDefined();
+      expectRequiredOrchestrationCue(resume.orchestrationCue);
+      expect(resume.orchestrationCue).toContain('Approval Required: No');
     });
 
     it('throws for an injection pointing to a missing workflow', async () => {

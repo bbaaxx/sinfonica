@@ -49,6 +49,7 @@ export interface DispatchResult {
   persona: string;
   envelopePath: string;
   delegationContext: string;
+  orchestrationCue: string;
 }
 
 /** Possible outcomes after processing a return envelope. */
@@ -60,6 +61,7 @@ export interface ApprovalResult {
   nextStepIndex?: number;
   revisionPath?: string;
   workflowIndex: WorkflowIndex;
+  orchestrationCue: string;
 }
 
 /** Failure types the coordinator can detect. */
@@ -73,6 +75,7 @@ export interface ErrorHandlingResult {
   action: EscalationAction;
   envelopePath?: string; // set on retry
   workflowIndex: WorkflowIndex;
+  orchestrationCue: string;
 }
 
 /** Resume result from a compaction injection or crash recovery. */
@@ -80,6 +83,31 @@ export interface ResumeResult {
   sessionId: string;
   currentStepIndex: number;
   workflowIndex: WorkflowIndex;
+  orchestrationCue: string;
+}
+
+export interface OrchestrationCueInput {
+  stageStatus: string;
+  blockers?: string[];
+  nextAction: string;
+  approvalRequired: boolean;
+}
+
+/**
+ * Presentation-only guardrail for Maestro updates.
+ * Keeps required orchestration cues stable without affecting workflow decisions.
+ */
+export function formatOrchestrationCue(input: OrchestrationCueInput): string {
+  const blockers = (input.blockers ?? []).filter((value) => value.trim().length > 0);
+  const blockerText = blockers.length > 0 ? blockers.join('; ') : 'None';
+  const approval = input.approvalRequired ? 'Yes' : 'No';
+
+  return [
+    `Stage Status: ${input.stageStatus}`,
+    `Blockers: ${blockerText}`,
+    `Next Action: ${input.nextAction}`,
+    `Approval Required: ${approval}`,
+  ].join('\n');
 }
 
 // ─── Routing Table ────────────────────────────────────────────────────────────
@@ -235,6 +263,12 @@ export async function dispatchStep(
     persona,
     envelopePath,
     delegationContext,
+    orchestrationCue: formatOrchestrationCue({
+      stageStatus: `Stage ${stepIndex + 1} dispatched to ${persona} for ${workflowName}.`,
+      blockers: [],
+      nextAction: `Wait for ${persona} return envelope and run approval gate.`,
+      approvalRequired: false,
+    }),
   };
 }
 
@@ -310,11 +344,30 @@ export async function processReturnEnvelope(
         outcome: 'advanced',
         nextStepIndex,
         workflowIndex,
+        orchestrationCue: formatOrchestrationCue({
+          stageStatus: isComplete
+            ? 'Pipeline complete after approval.'
+            : `Pipeline advanced to step ${nextStepIndex}.`,
+          blockers: [],
+          nextAction: isComplete
+            ? 'Publish final summary and confirm follow-up needs.'
+            : `Dispatch next step at index ${nextStepIndex}.`,
+          approvalRequired: false,
+        }),
       };
     } catch (err) {
       console.warn('[coordinator] Failed to advance workflow index:', err);
       const fallback = await readWorkflowIndex(workflowPath);
-      return { outcome: 'advanced', workflowIndex: fallback };
+      return {
+        outcome: 'advanced',
+        workflowIndex: fallback,
+        orchestrationCue: formatOrchestrationCue({
+          stageStatus: 'Approval accepted, but pipeline status refresh encountered a warning.',
+          blockers: ['Workflow index refresh failed during post-approval update.'],
+          nextAction: 'Re-check stage status and continue with the next valid step.',
+          approvalRequired: false,
+        }),
+      };
     }
   } else {
     // Rejection: hold pipeline, record decision
@@ -338,11 +391,30 @@ export async function processReturnEnvelope(
         outcome: revisionPath ? 'revision-sent' : 'held',
         revisionPath,
         workflowIndex,
+        orchestrationCue: formatOrchestrationCue({
+          stageStatus: revisionPath
+            ? 'Stage blocked with revision request sent to subagent.'
+            : 'Stage blocked after rejection; revision request was not created.',
+          blockers: [note ?? 'Rejected by reviewer'],
+          nextAction: revisionPath
+            ? 'Wait for revised return envelope, then request approval decision.'
+            : 'Create or re-send revision request before continuing.',
+          approvalRequired: true,
+        }),
       };
     } catch (err) {
       console.warn('[coordinator] Failed to update workflow index on rejection:', err);
       const fallback = await readWorkflowIndex(workflowPath);
-      return { outcome: 'held', workflowIndex: fallback };
+      return {
+        outcome: 'held',
+        workflowIndex: fallback,
+        orchestrationCue: formatOrchestrationCue({
+          stageStatus: 'Stage held after rejection with workflow index warning.',
+          blockers: [note ?? 'Rejected by reviewer'],
+          nextAction: 'Confirm blocked state, then send revision or retry guidance.',
+          approvalRequired: true,
+        }),
+      };
     }
   }
 }
@@ -442,7 +514,17 @@ export async function handleFailure(
       workflowIndex = await readWorkflowIndex(workflowPath);
     }
 
-    return { action: 'retry', envelopePath, workflowIndex };
+    return {
+      action: 'retry',
+      envelopePath,
+      workflowIndex,
+      orchestrationCue: formatOrchestrationCue({
+        stageStatus: `Retry dispatched for step ${stepIndex + 1} (${workflowName}).`,
+        blockers: [failureNotes],
+        nextAction: 'Wait for retry return envelope and reassess.',
+        approvalRequired: false,
+      }),
+    };
   }
 
   if (action === 'skip') {
@@ -481,7 +563,16 @@ export async function handleFailure(
       workflowIndex = await readWorkflowIndex(workflowPath);
     }
 
-    return { action: 'skip', workflowIndex: workflowIndex! };
+    return {
+      action: 'skip',
+      workflowIndex: workflowIndex!,
+      orchestrationCue: formatOrchestrationCue({
+        stageStatus: `Step ${stepIndex + 1} (${workflowName}) skipped after failure handling.`,
+        blockers: [failureNotes],
+        nextAction: 'Proceed to the next pipeline step.',
+        approvalRequired: false,
+      }),
+    };
   }
 
   // abort: mark workflow as failed, preserve full state
@@ -507,7 +598,16 @@ export async function handleFailure(
     workflowIndex = await readWorkflowIndex(workflowPath);
   }
 
-  return { action: 'abort', workflowIndex: workflowIndex! };
+  return {
+    action: 'abort',
+    workflowIndex: workflowIndex!,
+    orchestrationCue: formatOrchestrationCue({
+      stageStatus: `Pipeline aborted at step ${stepIndex + 1} (${workflowName}).`,
+      blockers: [failureNotes],
+      nextAction: 'Escalate to developer and hold pipeline until new direction.',
+      approvalRequired: true,
+    }),
+  };
 }
 
 // ─── CP5: Partial Execution & Resume ─────────────────────────────────────────
@@ -524,7 +624,17 @@ export async function resumePipeline(
   const workflowIndex = await readWorkflowIndex(workflowPath);
   const currentStepIndex = workflowIndex.frontmatter.currentStepIndex ?? 1;
 
-  return { sessionId, currentStepIndex, workflowIndex };
+  return {
+    sessionId,
+    currentStepIndex,
+    workflowIndex,
+    orchestrationCue: formatOrchestrationCue({
+      stageStatus: `Pipeline resumed at step index ${currentStepIndex}.`,
+      blockers: [],
+      nextAction: 'Continue from the current step according to workflow status.',
+      approvalRequired: false,
+    }),
+  };
 }
 
 /**
@@ -549,6 +659,12 @@ export async function resumeFromInjection(
     sessionId: report.sessionId,
     currentStepIndex,
     workflowIndex,
+    orchestrationCue: formatOrchestrationCue({
+      stageStatus: `Pipeline resumed from compaction at step index ${currentStepIndex}.`,
+      blockers: [],
+      nextAction: 'Continue orchestration from restored state.',
+      approvalRequired: false,
+    }),
   };
 }
 
