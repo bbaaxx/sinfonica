@@ -226,6 +226,15 @@ describe('CP2 — Sequential Dispatch Routing', () => {
   });
 
   describe('resolvePersona / WORKFLOW_PERSONA_MAP', () => {
+    it('keeps built-in workflow routing contract stable', () => {
+      expect(WORKFLOW_PERSONA_MAP).toEqual({
+        'create-prd': 'libretto',
+        'create-spec': 'amadeus',
+        'dev-story': 'coda',
+        'code-review': 'rondo',
+      });
+    });
+
     it('maps create-prd to libretto', () => {
       expect(resolvePersona('create-prd')).toBe('libretto');
     });

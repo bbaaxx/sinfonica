@@ -1,7 +1,7 @@
 # Types and Contracts
 
 **Status:** Draft
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-03-02
 **Scope:** Domain types, interfaces, and behavior contracts
 
 Back to index: [Documentation Index](../index.md)
@@ -48,9 +48,16 @@ Behavioral contract:
 
 ### `WorkflowFrontmatter`
 
-Required fields include:
+Required persisted keys (`workflow.md` frontmatter):
 
-- `workflow`, `session`, `status`, `currentStep`, `currentStepIndex`, timestamps
+- `workflow_id`
+- `workflow_status`
+- `current_step`
+- `current_step_index`
+- `total_steps`
+- `session_id`
+- `created_at`
+- `updated_at`
 
 Behavioral contract:
 
@@ -100,6 +107,25 @@ Behavioral contract:
 
 - Envelopes require typed metadata and required markdown sections validated by handoff validator logic.
 
+Required envelope frontmatter keys:
+
+- `handoff_id`
+- `session_id`
+- `sequence`
+- `source_persona`
+- `target_persona`
+- `handoff_type`
+- `status`
+- `created_at`
+- `word_count`
+
+Required sections by `handoff_type`:
+
+- `dispatch`: `Artifacts`, `Task`, `Context`, `Constraints`
+- `return`: `Artifacts`, `Summary`, `Completion Assessment`, `Blockers`, `Recommendations`
+- `revision`: `Artifacts`, `Revision Required`, `Feedback`, `Next Steps`
+- `direct`: `Artifacts`, `Message`
+
 ## Enforcement contracts
 
 Registry behavior in `src/enforcement/registry.ts` defines:
@@ -129,6 +155,8 @@ Exit code contracts:
 
 - These contracts are internal framework contracts unless otherwise documented as public API.
 - Changes to core types should be accompanied by test updates and documentation updates.
+- Contract stability window: preserve built-in workflow IDs, handoff frontmatter keys, required section names, and enforcement rule IDs for two minor releases or 90 days (whichever is longer).
+- During that window, additive optional fields are allowed; breaking changes require deprecation + migration guidance.
 
 ## Constraints and Non-Goals
 

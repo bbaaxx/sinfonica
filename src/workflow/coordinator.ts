@@ -27,6 +27,7 @@ import { writeHandoffEnvelope, createSessionId } from '../handoff/writer.js';
 import { validateHandoffEnvelope } from '../handoff/validator.js';
 import { applyApprovalDecision } from '../handoff/approval.js';
 import { formatDelegationContext, trackDelegation } from '../persona/delegation.js';
+import { emitWorkflowMetric } from './metrics.js';
 import type { WorkflowIndex, WorkflowStatus } from './types.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -318,6 +319,12 @@ export async function processReturnEnvelope(
   }
 
   if (decision === 'approve') {
+    emitWorkflowMetric({
+      name: 'approval_outcome',
+      sessionId,
+      outcome: 'approved',
+    });
+
     // Advance pipeline: read current index, increment step
     try {
       const current = await readWorkflowIndex(workflowPath);
@@ -338,6 +345,15 @@ export async function processReturnEnvelope(
         workflowStatus: nextStatus,
         currentStepIndex: nextStepIndex,
       });
+
+      if (isComplete) {
+        emitWorkflowMetric({
+          name: 'run_outcome',
+          sessionId,
+          outcome: 'complete',
+        });
+      }
+
       void intermediate; // used for side-effect only
 
       return {
@@ -370,11 +386,23 @@ export async function processReturnEnvelope(
       };
     }
   } else {
+    emitWorkflowMetric({
+      name: 'approval_outcome',
+      sessionId,
+      outcome: 'rejected',
+    });
+
     // Rejection: hold pipeline, record decision
     try {
       const workflowIndex = await updateWorkflowIndex(workflowPath, {
         workflowStatus: 'blocked',
       });
+      emitWorkflowMetric({
+        name: 'run_outcome',
+        sessionId,
+        outcome: 'blocked',
+      });
+
       try {
         await addDecision(cwd, sessionId, {
           timestamp: new Date().toISOString(),
@@ -486,6 +514,13 @@ export async function handleFailure(
   const workflowPath = workflowIndexPath(cwd, sessionId);
 
   if (action === 'retry') {
+    emitWorkflowMetric({
+      name: 'failure_action',
+      sessionId,
+      outcome: 'retry',
+      workflowName,
+    });
+
     // Re-dispatch with failure notes appended to context
     const augmentedContext = `${originalContext}\n\n## Previous Attempt Failure Notes\n${failureNotes}`;
     let envelopePath = '';
@@ -528,6 +563,13 @@ export async function handleFailure(
   }
 
   if (action === 'skip') {
+    emitWorkflowMetric({
+      name: 'failure_action',
+      sessionId,
+      outcome: 'skip',
+      workflowName,
+    });
+
     // Mark step as skipped, advance pipeline
     let workflowIndex: WorkflowIndex;
     try {
@@ -546,6 +588,14 @@ export async function handleFailure(
         workflowStatus: nextStatus,
         currentStepIndex: nextStepIndex,
       });
+
+      if (isComplete) {
+        emitWorkflowMetric({
+          name: 'run_outcome',
+          sessionId,
+          outcome: 'complete',
+        });
+      }
 
       try {
         await addDecision(cwd, sessionId, {
@@ -576,10 +626,22 @@ export async function handleFailure(
   }
 
   // abort: mark workflow as failed, preserve full state
+  emitWorkflowMetric({
+    name: 'failure_action',
+    sessionId,
+    outcome: 'abort',
+    workflowName,
+  });
+
   let workflowIndex: WorkflowIndex;
   try {
     workflowIndex = await updateWorkflowIndex(workflowPath, {
       workflowStatus: 'failed',
+    });
+    emitWorkflowMetric({
+      name: 'run_outcome',
+      sessionId,
+      outcome: 'failed',
     });
 
     try {
@@ -624,6 +686,12 @@ export async function resumePipeline(
   const workflowIndex = await readWorkflowIndex(workflowPath);
   const currentStepIndex = workflowIndex.frontmatter.currentStepIndex ?? 1;
 
+  emitWorkflowMetric({
+    name: 'resume_result',
+    sessionId,
+    outcome: 'success',
+  });
+
   return {
     sessionId,
     currentStepIndex,
@@ -654,6 +722,12 @@ export async function resumeFromInjection(
   const workflowPath = report.workflowPath;
   const workflowIndex = await readWorkflowIndex(workflowPath);
   const currentStepIndex = workflowIndex.frontmatter.currentStepIndex ?? 1;
+
+  emitWorkflowMetric({
+    name: 'resume_result',
+    sessionId: report.sessionId,
+    outcome: 'success',
+  });
 
   return {
     sessionId: report.sessionId,

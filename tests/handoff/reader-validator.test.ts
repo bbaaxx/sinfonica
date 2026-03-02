@@ -21,6 +21,37 @@ afterEach(async () => {
 });
 
 describe("handoff reader and validator", () => {
+  it("writes stable frontmatter keys for handoff envelopes", async () => {
+    const cwd = await makeTempDir();
+    const written = await writeHandoffEnvelope(
+      cwd,
+      {
+        sourcePersona: "maestro",
+        targetPersona: "coda",
+        type: "dispatch",
+        status: "pending",
+        task: "Implement feature",
+        context: "Feature scope context",
+        constraints: ["Follow TDD"]
+      },
+      "s-20260223-231530",
+      new Date("2026-02-23T23:15:35Z")
+    );
+
+    const parsed = await readHandoffEnvelope(written.filePath);
+    expect(Object.keys(parsed.frontmatter)).toEqual([
+      "handoff_id",
+      "session_id",
+      "sequence",
+      "source_persona",
+      "target_persona",
+      "handoff_type",
+      "status",
+      "created_at",
+      "word_count"
+    ]);
+  });
+
   it("parses and validates a valid dispatch envelope", async () => {
     const cwd = await makeTempDir();
     const written = await writeHandoffEnvelope(
@@ -118,5 +149,88 @@ describe("handoff reader and validator", () => {
 
     const validation = await validateHandoffEnvelope(envelope.filePath);
     expect(validation.errors).toHaveLength(0);
+  });
+
+  it("enforces required section sets for each handoff type", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260223-231530";
+
+    const dispatch = await writeHandoffEnvelope(
+      cwd,
+      {
+        sourcePersona: "maestro",
+        targetPersona: "coda",
+        type: "dispatch",
+        status: "pending",
+        task: "Implement feature",
+        context: "Feature scope context",
+        constraints: ["Follow TDD"]
+      },
+      sessionId,
+      new Date("2026-02-23T23:15:35Z")
+    );
+    const dispatchParsed = await readHandoffEnvelope(dispatch.filePath);
+    expect(Object.keys(dispatchParsed.sections)).toEqual(["Artifacts", "Task", "Context", "Constraints"]);
+
+    const returned = await writeHandoffEnvelope(
+      cwd,
+      {
+        sourcePersona: "coda",
+        targetPersona: "maestro",
+        type: "return",
+        status: "completed",
+        summary: "Done",
+        completionAssessment: "ready",
+        blockers: ["none"],
+        recommendations: ["review"]
+      },
+      sessionId,
+      new Date("2026-02-23T23:15:36Z")
+    );
+    const returnParsed = await readHandoffEnvelope(returned.filePath);
+    expect(Object.keys(returnParsed.sections)).toEqual([
+      "Artifacts",
+      "Summary",
+      "Completion Assessment",
+      "Blockers",
+      "Recommendations"
+    ]);
+
+    const revision = await writeHandoffEnvelope(
+      cwd,
+      {
+        sourcePersona: "maestro",
+        targetPersona: "coda",
+        type: "revision",
+        status: "pending",
+        revisionRequired: "Please revise",
+        feedback: "Missing test evidence",
+        nextSteps: ["Update tests"]
+      },
+      sessionId,
+      new Date("2026-02-23T23:15:37Z")
+    );
+    const revisionParsed = await readHandoffEnvelope(revision.filePath);
+    expect(Object.keys(revisionParsed.sections)).toEqual([
+      "Artifacts",
+      "Revision Required",
+      "Feedback",
+      "Next Steps"
+    ]);
+
+    const direct = await writeHandoffEnvelope(
+      cwd,
+      {
+        sourcePersona: "maestro",
+        targetPersona: "coda",
+        type: "direct",
+        status: "pending",
+        message: "Heads up"
+      },
+      sessionId,
+      new Date("2026-02-23T23:15:38Z")
+    );
+    const directParsed = await readHandoffEnvelope(direct.filePath);
+    expect(Object.keys(directParsed.sections)).toEqual(["Artifacts", "Message"]);
   });
 });

@@ -9,27 +9,28 @@ vi.mock("../../src/enforcement/registry.js", () => ({
 }));
 
 import { listRules } from "../../src/enforcement/registry.js";
+import type { EnforcementRule } from "../../src/enforcement/registry.js";
 import { runRulesCommand } from "../../src/cli/rules.js";
 
 const mockListRules = vi.mocked(listRules);
 
-const sampleRules = [
+const sampleRules: EnforcementRule[] = [
   {
     id: "ENF-001",
     name: "TDD Enforcer",
     description: "Blocks writes without a corresponding test change",
-    severity: "blocking" as const,
+    severity: "blocking",
     hook: "tool.execute.before",
-    layer: "dual" as const,
+    layer: "dual",
     enabled: true,
   },
   {
     id: "ENF-002",
     name: "Secret Protection",
     description: "Blocks access to credential files",
-    severity: "blocking" as const,
+    severity: "blocking",
     hook: "tool.execute.before",
-    layer: "plugin" as const,
+    layer: "plugin",
     enabled: true,
   },
 ];
@@ -116,6 +117,23 @@ describe("runRulesCommand", () => {
     const parsed = JSON.parse(output) as Array<{ id: string; name: string }>;
     expect(parsed[0]?.id).toBe("ENF-001");
     expect(parsed[0]?.name).toBe("TDD Enforcer");
+  });
+
+  it("JSON output preserves machine-readable rule fields", async () => {
+    mockListRules.mockReturnValue(sampleRules);
+    await runRulesCommand({ json: true });
+    const output = consoleLogSpy.mock.calls.map((c) => c[0]).join("");
+    const parsed = JSON.parse(output) as Array<Record<string, unknown>>;
+
+    expect(Object.keys(parsed[0] ?? {}).sort()).toEqual([
+      "description",
+      "enabled",
+      "hook",
+      "id",
+      "layer",
+      "name",
+      "severity",
+    ]);
   });
 
   it("returns 0 for JSON output", async () => {
