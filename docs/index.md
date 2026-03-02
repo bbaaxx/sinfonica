@@ -35,6 +35,8 @@ This index is the score for the Sinfonia docs set: start here to find concept gu
   - [Getting Started](guides/getting-started.md)
   - [Contributor Guide](guides/contributor-guide.md)
   - [Migration Guide](guides/migration-guide.md)
+- Product Requirements
+  - [Sinfonia Retrospective PRD (Published Copy)](prd/sinfonia-retrospective-prd.md)
 - Operations
   - [Testing and Validation](operations/testing-and-validation.md)
   - [Troubleshooting](operations/troubleshooting.md)

@@ -1,7 +1,7 @@
 # Configuration Reference
 
 **Status:** Draft
-**Last Updated:** 2026-02-26
+**Last Updated:** 2026-03-02
 **Scope:** Configuration fields, defaults, and constraints
 
 Back to index: [Documentation Index](../index.md)
@@ -98,6 +98,18 @@ Practical guidance:
 - This reference covers framework config keys currently validated by `schema.ts`.
 - It does not define every downstream tool-specific environment variable.
 - Future config expansions require schema and docs updates together.
+
+## Policy profile stub (disabled by default)
+
+Sinfonia includes a parser scaffold for enforcement policy profile files (`src/enforcement/policy-profile.ts`) to lock the future contract shape without runtime toggles.
+
+- Runtime application is disabled by default (`POLICY_PROFILE_RUNTIME_ENABLED = false`).
+- Profile contract shape:
+  - `policy_profile_id: string`
+  - `extends?: string`
+  - `overrides.<RULE_ID>.enabled?: boolean`
+  - `overrides.<RULE_ID>.severity?: blocking|advisory|injection`
+- Parser validation rejects unknown override keys.
 
 ## References and Evidence
 
