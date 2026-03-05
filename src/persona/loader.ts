@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { validatePersonaPaths } from "../validators/persona/validator.js";
@@ -90,7 +91,8 @@ const parseFrontmatter = (content: string): { frontmatter: Record<string, unknow
 
 const frameworkDirFromModule = (): string => {
   const here = dirname(new URL(import.meta.url).pathname);
-  return resolve(here, "../../agents");
+  const candidates = [resolve(here, "../../agents"), resolve(here, "../../../agents")];
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
 };
 
 export const loadPersona = async (options: LoadPersonaOptions): Promise<LoadedPersona> => {

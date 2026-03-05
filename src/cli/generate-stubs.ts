@@ -2,39 +2,14 @@ import { constants } from "node:fs";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-export type WorkflowStub = {
-  commandName: string;
-  description: string;
-  workflowId: string;
-  skillName: string;
-};
+import {
+  WORKFLOW_STUBS,
+  toCommandStub,
+  toSkill,
+  type WorkflowStub
+} from "../../surfaces/opencode/src/workflow-stubs.js";
 
-export const WORKFLOW_STUBS: WorkflowStub[] = [
-  {
-    commandName: "sinfonica-create-prd",
-    description: "Create a PRD with the Sinfonica workflow",
-    workflowId: "create-prd",
-    skillName: "sinfonica-create-prd"
-  },
-  {
-    commandName: "sinfonica-create-spec",
-    description: "Create a spec with the Sinfonica workflow",
-    workflowId: "create-spec",
-    skillName: "sinfonica-create-spec"
-  },
-  {
-    commandName: "sinfonica-dev-story",
-    description: "Implement a story with the Sinfonica workflow",
-    workflowId: "dev-story",
-    skillName: "sinfonica-dev-story"
-  },
-  {
-    commandName: "sinfonica-code-review",
-    description: "Run a code review with the Sinfonica workflow",
-    workflowId: "code-review",
-    skillName: "sinfonica-code-review"
-  }
-];
+export { WORKFLOW_STUBS, type WorkflowStub };
 
 const ensureParentDirectory = async (path: string): Promise<void> => {
   await mkdir(dirname(path), { recursive: true });
@@ -48,31 +23,6 @@ const writeIfMissing = async (path: string, content: string): Promise<void> => {
     await writeFile(path, content, "utf8");
   }
 };
-
-const toCommandStub = (workflow: WorkflowStub): string => `---
-name: ${workflow.commandName}
-description: ${workflow.description}
----
-
-Route this request to @sinfonica-maestro and run workflow \`${workflow.workflowId}\`.
-
-User input: $ARGUMENTS
-
-Load skill package: \`.opencode/skills/${workflow.skillName}/SKILL.md\`.
-`;
-
-const toSkill = (workflow: WorkflowStub): string => `# ${workflow.skillName}
-
-Workflow support skill for workflow \`${workflow.workflowId}\`.
-
-## Steps
-
-1. Parse and normalize the request input.
-2. Build a short execution plan for this workflow.
-3. Execute the workflow stages through the assigned persona chain.
-4. Validate outputs against acceptance criteria.
-5. Return a concise result summary and next actions.
-`;
 
 export const generateWorkflowStubs = async (cwd: string, force = false): Promise<void> => {
   for (const workflow of WORKFLOW_STUBS) {

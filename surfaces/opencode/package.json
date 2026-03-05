@@ -1,0 +1,18 @@
+{
+  "name": "sinfonica-surface-opencode",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenCode surface adapter skeleton for Sinfonica.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node -e \"process.exit(0)\"",
+    "test": "node -e \"process.exit(0)\""
+  },
+  "sinfonicaSmoke": {
+    "runtimeProbe": "./src/adapter-contract.ts"
+  }
+}

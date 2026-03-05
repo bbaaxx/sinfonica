@@ -11,8 +11,13 @@ Before making changes in this repository, read `docs/SINFONICA_QUICK_PRIME.md` t
 - Stack: TypeScript + Node.js CLI package
 - Module system: ESM (`"type": "module"`)
 - TS config: `strict: true`, `module: NodeNext`, output to `dist/`
-- Test runner: Vitest (`tests/**/*.test.ts`)
+- Test runner: Vitest (`tests/**/*.test.ts`, `surfaces/**/tests/**/*.test.ts`)
 - Package manager: npm (`package-lock.json`)
+
+## Pi extension context
+
+- Pi surface extension lives at `surfaces/pi/`.
+- Phase plan and acceptance criteria for Pi integration are tracked in `Pi_Surface_Addition.md`.
 
 ## Required commands
 

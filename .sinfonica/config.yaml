@@ -1,5 +1,5 @@
 version: "0.1"
-sinfonica_version: "0.0.0"
+sinfonica_version: "0.1.0"
 default_orchestrator: maestro
 project_name: "sinfonica"
 user_name: ""

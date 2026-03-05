@@ -7,7 +7,24 @@ import { runValidateCommand } from "./validate.js";
 import { runRulesCommand } from "./rules.js";
 
 const require = createRequire(import.meta.url);
-const pkg = require("../../package.json") as { version?: string };
+
+const loadVersion = (): string => {
+  const candidates = ["../../package.json", "../../../package.json"];
+  for (const candidate of candidates) {
+    try {
+      const pkg = require(candidate) as { version?: string };
+      if (typeof pkg.version === "string" && pkg.version.length > 0) {
+        return pkg.version;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return "unknown";
+};
+
+const version = loadVersion();
 
 export const createProgram = (): Command => {
   const program = new Command();
@@ -15,7 +32,7 @@ export const createProgram = (): Command => {
   program
     .name("sinfonica")
     .description("Sinfonica CLI")
-    .version(`sinfonica/${pkg.version ?? "unknown"}`, "-V, --version");
+    .version(`sinfonica/${version}`, "-V, --version");
 
   program
     .command("init")

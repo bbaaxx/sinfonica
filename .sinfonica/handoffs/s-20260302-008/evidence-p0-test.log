@@ -1,0 +1,375 @@
+
+> sinfonica@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.4 /Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica
+
+ ✓ tests/workflow/index-manager.test.ts (4 tests) 96ms
+ ✓ tests/handoff/approval.test.ts (6 tests) 111ms
+ ✓ tests/self-hosting/clean-init.test.ts (18 tests) 166ms
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > writes stable frontmatter keys for handoff envelopes
+[writer] workflow index artifact registration failed for s-20260223-231530-001: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-5619z4/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:26:21
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-5619z4/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > returns correct persona for each workflow
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > returns correct persona for each workflow
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → amadeus (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/handoffs/s-20260303-054149/002-maestro-to-amadeus.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > parses and validates a valid dispatch envelope
+[writer] workflow index artifact registration failed for s-20260223-231530-001: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-wGQLnT/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:57:21
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-wGQLnT/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > returns correct persona for each workflow
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → coda (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/handoffs/s-20260303-054149/003-maestro-to-coda.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > returns correct persona for each workflow
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → rondo (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/handoffs/s-20260303-054149/004-maestro-to-rondo.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-persona-gwdIz0/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > supports round-trip write -> read -> validate
+[writer] workflow index artifact registration failed for s-20260223-231530-001: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-yzBFCt/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:129:22
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-yzBFCt/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > enforces required section sets for each handoff type
+[writer] workflow index artifact registration failed for s-20260223-231530-001: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:158:22
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > enforces required section sets for each handoff type
+[writer] workflow index artifact registration failed for s-20260223-231530-002: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:175:22
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > creates a dispatch envelope file
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-env-nkXwq3/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-env-nkXwq3/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > enforces required section sets for each handoff type
+[writer] workflow index artifact registration failed for s-20260223-231530-003: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:199:22
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+stderr | tests/handoff/reader-validator.test.ts > handoff reader and validator > enforces required section sets for each handoff type
+[writer] workflow index artifact registration failed for s-20260223-231530-004: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/reader-validator.test.ts:221:20
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-handoff-rv-test-v0vnPh/.sinfonica/handoffs/s-20260223-231530/workflow.md'[39m
+}
+
+ ✓ tests/handoff/reader-validator.test.ts (6 tests) 192ms
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > delegation context contains required fields
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-ctx-JdurGC/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-ctx-JdurGC/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+ ✓ tests/persona/stub-generator.test.ts (9 tests) 437ms
+stderr | tests/workflow/metrics.test.ts > workflow metrics instrumentation > emits approval metrics for approve and reject outcomes
+[coordinator] Failed to update workflow index on rejection: Error: Invalid workflow status transition: complete -> blocked
+    at assertTransition [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:220:11[90m)[39m
+    at updateWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:311:5[90m)[39m
+    at processReturnEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/coordinator.ts:427:29[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/workflow/metrics.test.ts:71:5
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+stderr | tests/workflow/coordinator.test.ts > CP2 — Sequential Dispatch Routing > dispatchStep > returns correct stepIndex and sessionId
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → coda (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-idx-NCPv6l/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-coda.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-dispatch-idx-NCPv6l/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/workflow/metrics.test.ts > workflow metrics instrumentation > emits failure action metrics for retry and abort
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-metrics-test-lcWMtW/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-metrics-test-lcWMtW/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > approve → advances pipeline (outcome: advanced)
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > approve → advances pipeline (outcome: advanced)
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-approval-approve-i1rmTS/.sinfonica/handoffs/s-20260303-054149/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+stderr | tests/memory/sidecar.test.ts > appendMemoryEntry > returns null and does not throw on file system error
+[sinfonica:memory] Failed to create memory file for "maestro": Error: ENOENT: no such file or directory, mkdir '/proc'
+[90m    at mkdir (node:internal/fs/promises:861:10)[39m
+    at createMemoryFile [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/memory/sidecar.ts:59:5[90m)[39m
+    at appendMemoryEntry [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/memory/sidecar.ts:97:23[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/memory/sidecar.test.ts:112:20
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'mkdir'[39m,
+  path: [32m'/proc'[39m
+}
+
+stderr | tests/workflow/resume.test.ts > workflow resume and recovery > recovers from crash by rebuilding workflow index from envelopes
+[writer] workflow index artifact registration failed for s-20260223-231701-001: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-resume-test-3SXt5H/.sinfonica/handoffs/s-20260223-231701/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/workflow/resume.test.ts:49:5
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-resume-test-3SXt5H/.sinfonica/handoffs/s-20260223-231701/workflow.md'[39m
+}
+
+stderr | tests/workflow/resume.test.ts > workflow resume and recovery > recovers from crash by rebuilding workflow index from envelopes
+[writer] workflow index artifact registration failed for s-20260223-231701-002: Error: ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-resume-test-3SXt5H/.sinfonica/handoffs/s-20260223-231701/workflow.md'
+[90m    at open (node:internal/fs/promises:642:25)[39m
+[90m    at readFile (node:internal/fs/promises:1279:14)[39m
+    at readWorkflowIndex [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:293:19[90m)[39m
+    at addArtifact [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/workflow/index-manager.ts:356:19[90m)[39m
+    at writeHandoffEnvelope [90m(/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39msrc/handoff/writer.ts:144:5[90m)[39m
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/workflow/resume.test.ts:64:5
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20 {
+  errno: [33m-2[39m,
+  code: [32m'ENOENT'[39m,
+  syscall: [32m'open'[39m,
+  path: [32m'/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/sinfonica-resume-test-3SXt5H/.sinfonica/handoffs/s-20260223-231701/workflow.md'[39m
+}
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > approve → workflow.md currentStepIndex increments
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > approve → workflow.md currentStepIndex increments
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-approval-advance-idx-gPzzcQ/.sinfonica/handoffs/s-20260303-054149/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/cli/generate-stubs.test.ts (3 tests) 603ms
+   ✓ workflow command stubs and skill packaging > re-generates command stubs but preserves customized skills  379ms
+ ✓ tests/workflow/metrics.test.ts (3 tests) 335ms
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > approve on last step → workflow.md status becomes complete
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > approve on last step → workflow.md status becomes complete
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-approval-complete-X30E69/.sinfonica/handoffs/s-20260303-054149/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/workflow/resume.test.ts (3 tests) 164ms
+stderr | tests/memory/sidecar.test.ts > checkMemorySize > returns true (warning) when file exceeds threshold
+[sinfonica:memory] Memory file for "maestro" is 2.0KB (threshold: 0.001KB). Consider summarising older entries.
+
+stderr | tests/handoff/writer.test.ts > handoff writer > envelope creation succeeds even when addArtifact throws
+[writer] workflow index artifact registration failed for s-20260223-231530-001: Error: workflow index unavailable
+    at [90m/Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mtests/handoff/writer.test.ts:179:50
+    at [90mfile:///Users/bbaaxx/Code/lab/agent-skills-lab/packages/sinfonica/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ✓ tests/handoff/writer.test.ts (7 tests) 140ms
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > reject → workflow.md status becomes blocked
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > reject → workflow.md status becomes blocked
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-approval-reject-9a5S3e/.sinfonica/handoffs/s-20260303-054149/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/memory/sidecar.test.ts (23 tests) 528ms
+ ✓ tests/cli/init-pi.test.ts (3 tests) 782ms
+   ✓ initProject Pi surface generation > overwrites existing Pi package and skills with --force  455ms
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > reject → revision envelope created (outcome: revision-sent)
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP3 — Approval Gate Integration > reject → revision envelope created (outcome: revision-sent)
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-approval-revision-cYPUmI/.sinfonica/handoffs/s-20260303-054149/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+stderr | tests/workflow/coordinator-create-spec-gates.test.ts > create-spec approval gates > marks dispatch stage as approval-required for create-spec
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → amadeus (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-create-spec-dispatch-gTF02z/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-amadeus.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-create-spec-dispatch-gTF02z/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+ ✓ tests/enforcement/rules/enf-004-spec-stop.test.ts (5 tests) 95ms
+ ✓ tests/workflow/coordinator-create-spec-gates.test.ts (2 tests) 155ms
+stderr | tests/workflow/coordinator.test.ts > CP4 — Error Handling & Retry > handleFailure — retry > retry → re-creates dispatch envelope
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-retry-env-rPdgpo/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-retry-env-rPdgpo/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+ ✓ tests/self-hosting/acceptance.test.ts (32 tests) 130ms
+ ✓ tests/enforcement/registry.test.ts (10 tests) 9ms
+stderr | tests/workflow/coordinator.test.ts > CP4 — Error Handling & Retry > handleFailure — retry > retry → augmented context includes failure notes
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-retry-ctx-7mgey6/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-retry-ctx-7mgey6/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+ ✓ tests/workflows/create-spec.test.ts (20 tests) 1070ms
+ ✓ tests/workflows/create-prd.test.ts (20 tests) 1084ms
+ ✓ tests/persona/loader.test.ts (4 tests) 185ms
+ ✓ tests/enforcement/policy-profile.test.ts (4 tests) 17ms
+stderr | tests/workflow/coordinator.test.ts > CP4 — Error Handling & Retry > handleFailure — retry > retry → workflow.md status is in-progress
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054149 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-retry-status-w7NTbw/.sinfonica/handoffs/s-20260303-054149/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-retry-status-w7NTbw/.sinfonica/.sinfonica/handoffs/s-20260303-054149/workflow.md'
+
+ ✓ tests/persona/delegation.test.ts (8 tests) 146ms
+ ✓ tests/enforcement/rules/enf-003-compaction.test.ts (6 tests) 147ms
+ ✓ tests/workflows/code-review.test.ts (22 tests) 1163ms
+ ✓ tests/workflow/step-engine.test.ts (26 tests) 1191ms
+ ✓ tests/enforcement/utils.test.ts (27 tests) 96ms
+ ✓ tests/enforcement/rules/enf-005-shell-env.test.ts (8 tests) 92ms
+ ✓ tests/config/loader.test.ts (6 tests) 58ms
+ ✓ tests/pi-extension/phase3-handoff-utils.test.ts (4 tests) 62ms
+ ✓ tests/workflow/compaction.test.ts (4 tests) 83ms
+ ✓ tests/enforcement/rules/enf-007-completeness.test.ts (8 tests) 102ms
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > resumePipeline > can resume from mid-pipeline step N
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > resumePipeline > can resume from mid-pipeline step N
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-resume-mid-JjA0hA/.sinfonica/handoffs/s-20260303-054150/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/enforcement/rules/enf-001-tdd.test.ts (18 tests) 46ms
+ ✓ tests/enforcement/rules/enf-002-secrets.test.ts (19 tests) 51ms
+ ✓ tests/pi-extension/phase5-status-context.test.ts (3 tests) 57ms
+ ✓ tests/pi-extension/phase4-enforcement.test.ts (5 tests) 76ms
+ ✓ tests/pi-extension/phase2-extension.test.ts (5 tests) 56ms
+ ✓ tests/workflows/dev-story.test.ts (27 tests) 1448ms
+ ✓ tests/cli/validate.test.ts (2 tests) 20ms
+ ✓ tests/personas/coda.test.ts (2 tests) 6ms
+ ✓ tests/pi-extension/phase6-docs-packaging.test.ts (4 tests) 6ms
+ ✓ tests/personas/maestro.test.ts (5 tests) 8ms
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054150 → libretto (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/handoffs/s-20260303-054150/001-maestro-to-libretto.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/.sinfonica/handoffs/s-20260303-054150/workflow.md'
+
+ ✓ tests/validators/persona/validator.test.ts (3 tests) 56ms
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/handoffs/s-20260303-054150/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/personas/amadeus.test.ts (2 tests) 8ms
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054150 → amadeus (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/handoffs/s-20260303-054150/002-maestro-to-amadeus.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/.sinfonica/handoffs/s-20260303-054150/workflow.md'
+
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/handoffs/s-20260303-054150/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/personas/metronome.test.ts (2 tests) 14ms
+ ✓ tests/workflow/create-spec-contracts.test.ts (9 tests) 20ms
+ ✓ tests/cli/rules.test.ts (11 tests) 3ms
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[sinfonica] trackDelegation: failed to update workflow index for session s-20260303-054150 → rondo (envelope: /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/handoffs/s-20260303-054150/003-maestro-to-rondo.md): ENOENT: no such file or directory, open '/var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/.sinfonica/handoffs/s-20260303-054150/workflow.md'
+
+ ✓ tests/validators/persona/sections.test.ts (10 tests) 3ms
+ ✓ tests/validators/persona/frontmatter.test.ts (10 tests) 3ms
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[coordinator] Return envelope validation errors: [
+  [32m'Missing required field: handoff_type'[39m,
+  [32m'handoff_type must be one of dispatch/return/revision/direct'[39m,
+  [32m'word_count must match body and be <=500'[39m
+]
+
+stderr | tests/workflow/coordinator.test.ts > CP5 — Partial Execution & Resume > Full integration: start → pause → resume → complete > completes a 4-workflow pipeline with simulated compaction
+[approval] envelope validation failed for /var/folders/6p/bhp33vz103gcx_v02y26ch3m0000gn/T/coordinator-integration-full-77baX7/.sinfonica/handoffs/s-20260303-054150/001-return.md: HV-03: Missing required field: handoff_type, HV-08: handoff_type must be one of dispatch/return/revision/direct, HV-11: word_count must match body and be <=500
+
+ ✓ tests/personas/rondo.test.ts (2 tests) 7ms
+ ✓ tests/personas/libretto.test.ts (2 tests) 8ms
+ ✓ tests/validators/persona/content.test.ts (7 tests) 3ms
+ ✓ tests/workflow/coordinator.test.ts (56 tests) 1594ms
+ ✓ tests/cli/program.test.ts (3 tests) 2ms
+ ✓ tests/cli/wizard.test.ts (6 tests) 2ms
+ ✓ tests/cli/version.test.ts (2 tests) 2ms
+ ✓ tests/mcp/fortune-demo.test.ts (5 tests) 2ms
+stderr | tests/cli/init.test.ts > initProject --force > works non-interactively with -y --force
+[36m↻ Force-refreshing all generated files[0m
+
+ ✓ tests/cli/init.test.ts (14 tests) 1798ms
+   ✓ initProject > resumes existing init in --yes mode without overwriting config  331ms
+   ✓ initProject > supports re-init flow and overwrites config when selected  319ms
+   ✓ initProject --force > overwrites skills that normally skip  307ms
+
+ Test Files  55 passed (55)
+      Tests  535 passed (535)
+   Start at  23:41:48
+   Duration  2.17s (transform 904ms, setup 0ms, collect 2.71s, tests 14.74s, environment 4ms, prepare 2.18s)
+

@@ -78,6 +78,8 @@ sinfonica validate .sinfonica/agents --all
 ### 8) Final release decision
 
 - Proceed only if all checks pass.
+- Require attached `C11`, `C12`, and `C13` evidence from `docs/operations/p4-release-validation-matrix.md` before sign-off.
+- For migration cutover releases, also require attached `C14`, `C15`, and `C16` evidence from `docs/operations/p5-cutover-checklist.md`.
 - If any check fails, resolve and re-run full checklist.
 
 ## Optional hardening checks

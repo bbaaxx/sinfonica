@@ -1,0 +1,55 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "sinfonica-maestro": {
+      "mode": "primary",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true
+      },
+      "description": "Sinfonica orchestrator. Coordinates multi-agent development workflows: receives user stories, writes dispatch envelopes, spawns subagents (Coda, Rondo, Libretto, Amadeus), collects return envelopes, and manages approval gates. Always the user's primary point of contact."
+    },
+    "sinfonica-libretto": {
+      "mode": "subagent",
+      "tools": {
+        "read": true,
+        "write": true
+      },
+      "description": "Sinfonica requirements agent. Invoke for PRD creation and requirements analysis. Reads a dispatch envelope with project context, produces a structured PRD following the Sinfonica template, and writes a return envelope with the PRD artifact path and a completeness assessment."
+    },
+    "sinfonica-amadeus": {
+      "mode": "subagent",
+      "tools": {
+        "read": true,
+        "write": true
+      },
+      "description": "Sinfonica specification agent. Invoke for technical specification authoring. Reads a dispatch envelope referencing a PRD, produces a detailed technical spec with schema definitions, validation rules, and data flow descriptions, and writes a return envelope with the spec artifact path."
+    },
+    "sinfonica-coda": {
+      "mode": "subagent",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true
+      },
+      "description": "Sinfonica implementation agent. Invoke for all code writing, editing, and execution tasks. Reads a dispatch envelope from .sinfonica/handoffs/, implements the specified task with TDD discipline, and writes a return envelope with completion status and artifact list."
+    },
+    "sinfonica-rondo": {
+      "mode": "subagent",
+      "tools": {
+        "read": true,
+        "bash": true
+      },
+      "description": "Sinfonica code review agent. Invoke for all code review tasks. Reads a dispatch envelope referencing implementation artifacts, performs a structured review against quality criteria, and writes a return envelope with findings, severity ratings, and an approve/revise verdict."
+    },
+    "sinfonica-metronome": {
+      "mode": "subagent",
+      "tools": {
+        "read": true
+      },
+      "description": "Sinfonica QA agent. Invoke for test planning and quality assurance. Reads a dispatch envelope referencing implementation and spec artifacts, produces a test plan with coverage matrix, and writes a return envelope with test results and a pass/fail verdict."
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "phase": "P2",
+  "owners": ["core", "adapter:opencode"],
+  "paths": [
+    {
+      "path": "src/cli/init.ts",
+      "owner": "core",
+      "classification": "bridge"
+    },
+    {
+      "path": "src/cli/generate-stubs.ts",
+      "owner": "core",
+      "classification": "bridge"
+    },
+    {
+      "path": "tsconfig.json",
+      "owner": "core",
+      "classification": "build-boundary"
+    },
+    {
+      "path": "surfaces/opencode/src/config.ts",
+      "owner": "adapter:opencode",
+      "classification": "adapter-implementation"
+    },
+    {
+      "path": "surfaces/opencode/src/workflow-stubs.ts",
+      "owner": "adapter:opencode",
+      "classification": "adapter-implementation"
+    },
+    {
+      "path": "surfaces/opencode/tests/config.test.ts",
+      "owner": "adapter:opencode",
+      "classification": "adapter-test"
+    },
+    {
+      "path": "surfaces/opencode/tests/workflow-stubs.test.ts",
+      "owner": "adapter:opencode",
+      "classification": "adapter-test"
+    }
+  ]
+}

@@ -102,3 +102,4 @@ When you are invoked as a subagent by Maestro:
 4. **Signal completion** — after writing the return envelope, state clearly:
    "Return envelope written to [path]. Task complete."
    This tells opencode your turn is done and control should return to Maestro.
+

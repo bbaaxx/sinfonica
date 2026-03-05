@@ -4,12 +4,29 @@ import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
-const pkg = require("../../package.json") as { version?: string };
-const FRAMEWORK_VERSION = pkg.version ?? "0.0.0";
+
+const loadFrameworkVersion = (): string => {
+  const candidates = ["../../package.json", "../../../package.json"];
+  for (const candidate of candidates) {
+    try {
+      const pkg = require(candidate) as { version?: string };
+      if (typeof pkg.version === "string" && pkg.version.length > 0) {
+        return pkg.version;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return "0.0.0";
+};
+
+const FRAMEWORK_VERSION = loadFrameworkVersion();
 
 import { generateWorkflowStubs } from "./generate-stubs.js";
 import { generatePersonaArtifacts } from "../persona/loader.js";
 import { PERSONA_PROFILES } from "../persona/stub-generator.js";
+import { mergeOpenCodeConfig } from "../../surfaces/opencode/src/config.js";
 import {
   createConsolePrompt,
   type PromptFn,
@@ -29,6 +46,12 @@ type InitProjectOptions = {
   config?: WizardConfig;
   overwriteConfig?: boolean;
   force?: boolean;
+};
+
+type PiSkillStub = {
+  name: string;
+  description: string;
+  workflowId: string;
 };
 
 export type RunInitCommandOptions = {
@@ -57,6 +80,29 @@ const DEFAULT_CONFIG: WizardConfig = {
   skillLevel: "intermediate",
   enforcementStrictness: "medium"
 };
+
+const PI_SKILL_STUBS: PiSkillStub[] = [
+  {
+    name: "create-prd",
+    description: "Start the Sinfonica create-prd workflow for product requirement documents.",
+    workflowId: "create-prd"
+  },
+  {
+    name: "create-spec",
+    description: "Start the Sinfonica create-spec workflow for technical specifications.",
+    workflowId: "create-spec"
+  },
+  {
+    name: "dev-story",
+    description: "Start the Sinfonica dev-story workflow for implementation tasks.",
+    workflowId: "dev-story"
+  },
+  {
+    name: "code-review",
+    description: "Start the Sinfonica code-review workflow for change reviews.",
+    workflowId: "code-review"
+  }
+];
 
 const quoteYaml = (value: string): string => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
@@ -171,52 +217,64 @@ const readJson = async (path: string): Promise<Record<string, unknown> | null> =
   }
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-};
+const toPiPackageConfig = (): Record<string, unknown> => ({
+  name: "sinfonica-pi-workflows",
+  private: true,
+  version: "0.0.0",
+  type: "module",
+  pi: {
+    skills: ["./skills"]
+  }
+});
 
-/** Derive opencode tools object from a persona's permissions array. */
-const permissionsToTools = (
-  permissions: string[]
-): Record<string, boolean> => {
-  const toolNames = ["read", "write", "edit", "bash"] as const;
-  return Object.fromEntries(
-    toolNames
-      .filter((t) => permissions.includes(t))
-      .map((t) => [t, true])
-  );
-};
+const toPiSkillStub = (skill: PiSkillStub): string => `---
+name: ${skill.name}
+description: ${skill.description}
+---
 
-const mergeOpenCodeConfig = (current: Record<string, unknown>): Record<string, unknown> => {
-  // Read existing `agent` entries (singular key — correct opencode schema)
-  const currentAgent = isRecord(current.agent) ? current.agent : {};
+# ${skill.name}
 
-  const agent: Record<string, unknown> = {};
-  for (const profile of PERSONA_PROFILES) {
-    const key = `sinfonica-${profile.id}`;
-    const existing = currentAgent[key];
-    // Preserve existing entry if it already has the correct shape
-    if (isRecord(existing) && "mode" in existing && "tools" in existing) {
-      agent[key] = existing;
-    } else {
-      agent[key] = {
-        mode: profile.mode === "primary" ? "primary" : "subagent",
-        tools: permissionsToTools(profile.permissions),
-        description: profile.description
-      };
-    }
+Use this skill when the user asks to run the ${skill.workflowId} workflow.
+
+## Start workflow
+
+\`\`\`bash
+sinfonica start ${skill.workflowId}
+\`\`\`
+`;
+
+const writePiPackageConfig = async (cwd: string, force: boolean): Promise<void> => {
+  const packagePath = join(cwd, ".pi/package.json");
+  const packageText = `${JSON.stringify(toPiPackageConfig(), null, 2)}\n`;
+
+  if (force) {
+    await ensureParentDirectory(packagePath);
+    await writeFile(packagePath, packageText, "utf8");
+    return;
   }
 
-  return {
-    $schema: "https://opencode.ai/config.json",
-    agent
-  };
+  await writeIfMissing(packagePath, packageText);
+};
+
+const writePiSkillStubs = async (cwd: string, force: boolean): Promise<void> => {
+  for (const skill of PI_SKILL_STUBS) {
+    const skillPath = join(cwd, ".pi/skills", skill.name, "SKILL.md");
+    const content = toPiSkillStub(skill);
+
+    if (force) {
+      await ensureParentDirectory(skillPath);
+      await writeFile(skillPath, content, "utf8");
+      continue;
+    }
+
+    await writeIfMissing(skillPath, content);
+  }
 };
 
 const writeOpenCodeConfig = async (cwd: string): Promise<void> => {
   const path = join(cwd, "opencode.json");
   const existing = await readJson(path);
-  const next = mergeOpenCodeConfig(existing ?? {});
+  const next = mergeOpenCodeConfig(existing ?? {}, PERSONA_PROFILES);
   const nextText = `${JSON.stringify(next, null, 2)}\n`;
 
   if (existing !== null) {
@@ -314,6 +372,8 @@ export const initProject = async (
   }
 
   await writeOpenCodeConfig(cwd);
+  await writePiPackageConfig(cwd, force);
+  await writePiSkillStubs(cwd, force);
   await generatePersonaArtifacts({ cwd, force });
   await generateWorkflowStubs(cwd, force);
 };

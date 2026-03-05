@@ -23,6 +23,7 @@
 
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> •
+  <a href="#pi-surface-integration"><strong>Pi Integration</strong></a> •
   <a href="#documentation"><strong>Documentation</strong></a> •
   <a href="#cli-commands"><strong>CLI Reference</strong></a> •
   <a href="#for-ai-assistants"><strong>AI Bootstrap</strong></a>
@@ -35,6 +36,7 @@
 - [Why Sinfonica](#why-sinfonica)
 - [Before / After](#before--after)
 - [Quick Start](#quick-start)
+- [Pi Surface Integration](#pi-surface-integration)
 - [Features at a Glance](#features-at-a-glance)
 - [How It Works](#how-it-works)
 - [Execution Walkthrough](#execution-walkthrough)
@@ -111,6 +113,21 @@ sinfonica validate .sinfonica/agents --all
 # inspect active enforcement rules
 sinfonica rules
 ```
+
+## Pi Surface Integration
+
+Sinfonica can run from Pi through the extension package in `surfaces/pi/`.
+
+Quick start for Pi users:
+
+```bash
+sinfonica init -y
+pi install /absolute/path/to/sinfonica/surfaces/pi
+```
+
+Then start a workflow through Pi tools or `/sinfonica` commands and advance with approvals/revisions.
+
+Extension setup, command usage, and troubleshooting are documented in [`surfaces/pi/README.md`](surfaces/pi/README.md).
 
 ## Features at a Glance
 
