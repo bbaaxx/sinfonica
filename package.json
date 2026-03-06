@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@sinclair/typebox": "^0.34.48",
     "commander": "^13.1.0"
   },
   "devDependencies": {

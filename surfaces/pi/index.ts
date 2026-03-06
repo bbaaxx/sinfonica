@@ -19,6 +19,14 @@ import { registerEnforcementBridge } from "./src/enforcement/index.ts";
 import { evaluateAdvanceRequest, evaluateToolCall, resolveCurrentPhase, type WorkflowStateSnapshot } from "./src/orchestration/policy.ts";
 import { extractEvidenceFromToolResult, type StepEvidence } from "./src/orchestration/evidence.ts";
 import { readWorkflowState } from "./src/workflow-state.ts";
+import {
+  StartWorkflowParams,
+  AdvanceStepParams,
+  ListWorkflowsParams,
+  type StartWorkflowParamsType,
+  type AdvanceStepParamsType,
+  type ListWorkflowsParamsType,
+} from "./src/schemas.ts";
 
 // Item #2: Config loading for enforcement mode
 type EnforcementMode = "warn" | "block" | "disabled";
@@ -46,9 +54,10 @@ const readEnforcementConfig = async (cwd: string): Promise<EnforcementMode> => {
   return "disabled";
 };
 
-type WorkflowType = "create-prd" | "create-spec" | "dev-story" | "code-review";
-type AdvanceDecision = "approve" | "request-revision";
 type CommandAction = "status" | "advance" | "list" | "abort" | "reload";
+
+type WorkflowType = StartWorkflowParamsType["workflowType"];
+type AdvanceDecision = AdvanceStepParamsType["decision"];
 
 type ExecuteResult = {
   stdout: string;
@@ -130,20 +139,7 @@ type SendMessageOptions = {
   triggerTurn?: boolean;
 };
 
-type StartWorkflowParams = {
-  workflowType: WorkflowType;
-  context?: string;
-};
-
-type AdvanceStepParams = {
-  decision: AdvanceDecision;
-  feedback?: string;
-};
-
-type ListWorkflowsParams = Record<string, never>;
-
-// TODO: Migrate to @sinclair/typebox TObject when available in the Pi host environment.
-// For now, tool parameters use plain JSON Schema objects for compatibility.
+// Tool parameters use TypeBox schemas from ./src/schemas.ts for type safety and runtime validation.
 type RegisteredTool<TParams> = {
   name: string;
   label: string;
@@ -199,8 +195,6 @@ export type ExtensionAPI = {
   appendEntry?: (customType: string, data?: unknown) => void;
 };
 
-const WORKFLOW_TYPES: WorkflowType[] = ["create-prd", "create-spec", "dev-story", "code-review"];
-const ADVANCE_DECISIONS: AdvanceDecision[] = ["approve", "request-revision"];
 const COMMAND_ACTIONS: CommandAction[] = ["status", "advance", "list", "abort", "reload"];
 
 const DEFAULT_WORKFLOW_STEP_SLUGS: Record<WorkflowType, string[]> = {
@@ -531,26 +525,11 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
     }
   });
 
-  pi.registerTool<StartWorkflowParams>({
+  pi.registerTool<StartWorkflowParamsType>({
     name: "sinfonica_start_workflow",
     label: "Start Sinfonica Workflow",
     description: "Start a Sinfonica workflow by delegating to the Sinfonica CLI.",
-    parameters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        workflowType: {
-          type: "string",
-          enum: WORKFLOW_TYPES,
-          description: "Workflow ID to start.",
-        },
-        context: {
-          type: "string",
-          description: "Optional context to include when starting the workflow.",
-        },
-      },
-      required: ["workflowType"],
-    },
+    parameters: StartWorkflowParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       try {
         const args = ["start", params.workflowType];
@@ -614,26 +593,11 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
     },
   });
 
-  pi.registerTool<AdvanceStepParams>({
+  pi.registerTool<AdvanceStepParamsType>({
     name: "sinfonica_advance_step",
     label: "Advance Sinfonica Step",
     description: "Advance the active Sinfonica workflow by recording a decision via CLI.",
-    parameters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        decision: {
-          type: "string",
-          enum: ADVANCE_DECISIONS,
-          description: "Decision for the active step.",
-        },
-        feedback: {
-          type: "string",
-          description: "Optional reviewer feedback.",
-        },
-      },
-      required: ["decision"],
-    },
+    parameters: AdvanceStepParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       try {
         // Evidence-gated advance (WS3): check accumulated evidence before allowing
@@ -735,16 +699,11 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
     },
   });
 
-  pi.registerTool<ListWorkflowsParams>({
+  pi.registerTool<ListWorkflowsParamsType>({
     name: "sinfonica_list_workflows",
     label: "List Sinfonica Workflows",
     description: "List available workflow IDs from the repository workflows directory.",
-    parameters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-      required: [],
-    },
+    parameters: ListWorkflowsParams,
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
       try {
         const cwd = ctx.cwd;
