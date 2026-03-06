@@ -1,4 +1,4 @@
-import { type WorkflowPhase, resolvePhaseFromStep, isToolAllowedInPhase } from "./phase-tools.ts";
+import { type PhaseToolMap, type PhaseToolMapSource, type WorkflowPhase, resolvePhaseFromStep, isToolAllowedInPhase } from "./phase-tools.ts";
 import { validateStepEvidence, type StepEvidence } from "./evidence.ts";
 
 export type WorkflowStateSnapshot = {
@@ -8,6 +8,9 @@ export type WorkflowStateSnapshot = {
   totalSteps: number;
   currentStepSlug: string;
   status: string;
+  phaseToolMap?: PhaseToolMap;
+  phaseToolMapSource?: PhaseToolMapSource;
+  phaseToolMapWarnings?: string[];
 };
 
 export type PolicyDecision = {
@@ -28,14 +31,15 @@ export const evaluateToolCall = (
   toolName: string,
   input: unknown,
   currentPhase: WorkflowPhase,
-  workflowState: WorkflowStateSnapshot
+  workflowState: WorkflowStateSnapshot,
+  phaseToolMap?: PhaseToolMap
 ): PolicyDecision => {
   // sinfonica tools are always allowed (they have their own gating)
   if (toolName.startsWith("sinfonica_")) {
     return { allowed: true };
   }
 
-  if (!isToolAllowedInPhase(toolName, currentPhase)) {
+  if (!isToolAllowedInPhase(toolName, currentPhase, phaseToolMap)) {
     return {
       allowed: false,
       reason: `Tool "${toolName}" is not allowed during ${currentPhase} phase (step ${workflowState.currentStep}/${workflowState.totalSteps}: ${workflowState.currentStepSlug}). Complete the current step before using this tool.`,

@@ -19,6 +19,7 @@ import { registerEnforcementBridge } from "./src/enforcement/index.ts";
 import { evaluateAdvanceRequest, evaluateToolCall, resolveCurrentPhase, type WorkflowStateSnapshot } from "./src/orchestration/policy.ts";
 import { extractEvidenceFromToolResult, type StepEvidence } from "./src/orchestration/evidence.ts";
 import { readWorkflowState } from "./src/workflow-state.ts";
+import { clearPhaseToolMapCache, type PhaseToolMap, type PhaseToolMapSource } from "./src/orchestration/phase-tools.ts";
 import {
   StartWorkflowParams,
   AdvanceStepParams,
@@ -422,8 +423,15 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
     }
 
     let currentStepSlug = `${active.currentStep}-unknown`;
+    let phaseToolMap: PhaseToolMap | undefined;
+    let phaseToolMapSource: PhaseToolMapSource | undefined;
+    let phaseToolMapWarnings: string[] = [];
+    
     try {
-      const state = await readWorkflowState(cwd, active.sessionId);
+      const state = await readWorkflowState(cwd, active.sessionId, {
+        workflowId: active.workflowId,
+        includePhaseToolMap: true,
+      });
       // Item #5: Use real slug from workflow state stepSlugs array
       const slugIndex = active.currentStep - 1;
       if (state.stepSlugs && state.stepSlugs[slugIndex]) {
@@ -432,6 +440,11 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
         // Fallback to step index format
         currentStepSlug = `${active.currentStep}-step`;
       }
+      
+      // Item #4: Include phase map in snapshot
+      phaseToolMap = state.phaseToolMap;
+      phaseToolMapSource = state.phaseToolMapSource;
+      phaseToolMapWarnings = state.phaseToolMapWarnings ?? [];
     } catch {
       // Use fallback slug
     }
@@ -443,6 +456,9 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
       totalSteps: active.totalSteps,
       currentStepSlug,
       status: active.status,
+      phaseToolMap,
+      phaseToolMapSource,
+      phaseToolMapWarnings,
     };
   };
 
@@ -493,6 +509,9 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
     currentStepEvidence = null;
   });
 
+  // Item #4: Track emitted phase map warnings to avoid spam
+  const emittedPhaseMapWarnings = new Set<string>();
+
   // Item #2: tool_call policy enforcement
   pi.on("tool_call", async (event, ctx) => {
     const toolName = event.toolName as string;
@@ -508,13 +527,24 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
       return; // No active workflow, allow all tools
     }
 
+    // Item #4: Emit phase map warnings once per session/workflow/error combination
+    if (activeState.phaseToolMapWarnings && activeState.phaseToolMapWarnings.length > 0) {
+      const warningKey = `${activeState.sessionId}::${activeState.workflowId}::${activeState.phaseToolMapSource}`;
+      if (!emittedPhaseMapWarnings.has(warningKey)) {
+        emittedPhaseMapWarnings.add(warningKey);
+        for (const warning of activeState.phaseToolMapWarnings) {
+          ctx?.ui?.notify?.(warning, "warning");
+        }
+      }
+    }
+
     const enforcementMode = await readEnforcementConfig(cwd);
     if (enforcementMode === "disabled") {
       return; // Enforcement disabled, allow all tools
     }
 
     const currentPhase = resolveCurrentPhase(activeState);
-    const policy = evaluateToolCall(toolName, event.input, currentPhase, activeState);
+    const policy = evaluateToolCall(toolName, event.input, currentPhase, activeState, activeState.phaseToolMap);
 
     if (!policy.allowed) {
       if (enforcementMode === "block") {
@@ -824,9 +854,10 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
         }
 
         if (action === "reload") {
+          clearPhaseToolMapCache();
           const count = await enforcementBridge.reload(ctx.cwd);
           const label = count === 1 ? "rule" : "rules";
-          ctx.ui.notify(`Sinfonica enforcement reloaded (${count} ${label}).`, "info");
+          ctx.ui.notify(`Sinfonica enforcement reloaded (${count} ${label}). Phase map cache cleared.`, "info");
           return;
         }
 

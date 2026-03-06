@@ -1,12 +1,22 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { loadPhaseToolMap, type PhaseToolMap, type PhaseToolMapSource } from "./orchestration/phase-tools.ts";
+
 export type WorkflowState = {
   currentStep: number;
   totalSteps: number;
   status: string;
   persona?: string | null;
   stepSlugs: string[];
+  phaseToolMap?: PhaseToolMap;
+  phaseToolMapSource?: PhaseToolMapSource;
+  phaseToolMapWarnings?: string[];
+};
+
+type ReadWorkflowStateOptions = {
+  workflowId?: string;
+  includePhaseToolMap?: boolean;
 };
 
 type StageEntry = {
@@ -99,7 +109,11 @@ const currentStepFromCurrentStageLine = (raw: string): number => {
   return phaseMatches[phaseMatches.length - 1];
 };
 
-export const readWorkflowState = async (cwd: string, sessionId: string): Promise<WorkflowState> => {
+export const readWorkflowState = async (
+  cwd: string,
+  sessionId: string,
+  options?: ReadWorkflowStateOptions
+): Promise<WorkflowState> => {
   const workflowPath = join(cwd, ".sinfonica", "handoffs", sessionId, "workflow.md");
   const raw = await readFile(workflowPath, "utf8");
   const frontmatter = parseFrontmatter(raw);
@@ -112,13 +126,26 @@ export const readWorkflowState = async (cwd: string, sessionId: string): Promise
   const fmCurrentStep = Number.parseInt(frontmatter.current_step_index ?? "", 10);
   const fmTotalSteps = Number.parseInt(frontmatter.total_steps ?? "", 10);
   if (fmStatus && Number.isFinite(fmCurrentStep) && Number.isFinite(fmTotalSteps) && fmCurrentStep > 0 && fmTotalSteps > 0) {
-    return {
+    const state: WorkflowState = {
       currentStep: Math.min(fmCurrentStep, fmTotalSteps),
       totalSteps: fmTotalSteps,
       status: fmStatus,
       persona: typeof frontmatter.persona === "string" ? frontmatter.persona.trim() : null,
       stepSlugs,
     };
+
+    if (options?.includePhaseToolMap && options.workflowId) {
+      try {
+        const phaseMapResult = await loadPhaseToolMap(cwd, options.workflowId);
+        state.phaseToolMap = phaseMapResult.map;
+        state.phaseToolMapSource = phaseMapResult.source;
+        state.phaseToolMapWarnings = phaseMapResult.warnings;
+      } catch {
+        // Keep workflow state reads resilient.
+      }
+    }
+
+    return state;
   }
 
   const statusMatch = raw.match(/-\s*Overall Status:\s*(.+)$/im);
@@ -132,10 +159,23 @@ export const readWorkflowState = async (cwd: string, sessionId: string): Promise
   const rawStep = firstActive?.step ?? (currentStepFromLine > 0 ? currentStepFromLine : fallbackStep);
   const currentStep = totalSteps > 0 ? Math.min(rawStep, totalSteps) : rawStep;
 
-  return {
+  const state: WorkflowState = {
     currentStep,
     totalSteps,
     status,
     stepSlugs,
   };
+
+  if (options?.includePhaseToolMap && options.workflowId) {
+    try {
+      const phaseMapResult = await loadPhaseToolMap(cwd, options.workflowId);
+      state.phaseToolMap = phaseMapResult.map;
+      state.phaseToolMapSource = phaseMapResult.source;
+      state.phaseToolMapWarnings = phaseMapResult.warnings;
+    } catch {
+      // Keep workflow state reads resilient.
+    }
+  }
+
+  return state;
 };

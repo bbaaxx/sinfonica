@@ -6,7 +6,15 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { initPipeline } from "../../../src/workflow/coordinator.js";
 import { evaluateToolCall, evaluateAdvanceRequest, resolveCurrentPhase, type WorkflowStateSnapshot } from "../src/orchestration/policy.ts";
-import { resolvePhaseFromStep, isToolAllowedInPhase, computeAllowedTools, DEFAULT_PHASE_TOOL_MAP } from "../src/orchestration/phase-tools.ts";
+import {
+  resolvePhaseFromStep,
+  isToolAllowedInPhase,
+  computeAllowedTools,
+  DEFAULT_PHASE_TOOL_MAP,
+  clearPhaseToolMapCache,
+  loadPhaseToolMap,
+  type PhaseToolMap,
+} from "../src/orchestration/phase-tools.ts";
 import { validateStepEvidence, extractEvidenceFromToolResult } from "../src/orchestration/evidence.ts";
 import { readWorkflowState } from "../src/workflow-state.ts";
 import registerSinfonicaExtension, { type ExtensionAPI } from "../index.ts";
@@ -269,6 +277,50 @@ describe("policy: evaluateToolCall", () => {
     const decision = evaluateToolCall("Write", {}, "implementation", state);
     expect(decision.allowed).toBe(true);
   });
+
+  it("uses custom phase map when provided", () => {
+    const state = makeState({ currentStep: 2, currentStepSlug: "2-draft-spec" });
+    const customMap: PhaseToolMap = {
+      ...DEFAULT_PHASE_TOOL_MAP,
+      implementation: {
+        allowed: ["Read"],
+        blocked: ["Write"],
+      },
+    };
+
+    const decision = evaluateToolCall("Write", {}, "implementation", state, customMap);
+
+    expect(decision.allowed).toBe(false);
+  });
+
+  it("applies blocked precedence over allowed in the same phase", () => {
+    const state = makeState({ currentStep: 2, currentStepSlug: "2-draft-spec" });
+    const customMap: PhaseToolMap = {
+      ...DEFAULT_PHASE_TOOL_MAP,
+      implementation: {
+        allowed: ["Write", "Read"],
+        blocked: ["Write"],
+      },
+    };
+
+    const decision = evaluateToolCall("Write", {}, "implementation", state, customMap);
+
+    expect(decision.allowed).toBe(false);
+  });
+
+  it("always allows sinfonica tools even with restrictive custom map", () => {
+    const state = makeState();
+    const customMap: PhaseToolMap = {
+      planning: { allowed: [], blocked: ["*"] },
+      implementation: { allowed: [], blocked: ["*"] },
+      review: { allowed: [], blocked: ["*"] },
+      approval: { allowed: [], blocked: ["*"] },
+    };
+
+    const decision = evaluateToolCall("sinfonica_start_workflow", {}, "planning", state, customMap);
+
+    expect(decision.allowed).toBe(true);
+  });
 });
 
 describe("policy: evaluateAdvanceRequest", () => {
@@ -319,10 +371,24 @@ const makeTempDir = async (): Promise<string> => {
   return dir;
 };
 
+const writeWorkflowDef = async (
+  cwd: string,
+  workflowId: string,
+  content: string,
+  options?: { location?: ".sinfonica" | "workflows" }
+): Promise<void> => {
+  const location = options?.location ?? ".sinfonica";
+  const workflowDir = location === "workflows" 
+    ? join(cwd, "workflows", workflowId)
+    : join(cwd, location, "workflows", workflowId);
+  await mkdir(workflowDir, { recursive: true });
+  await writeFile(join(workflowDir, "workflow.md"), content, "utf8");
+};
+
 const makeTestCtx = (cwd: string) => ({
   cwd,
   ui: {
-    notify: () => {},
+    notify: (_message: string, _level?: "info" | "warning" | "error") => {},
     confirm: async () => false,
     select: async () => undefined as string | undefined,
     input: async () => undefined as string | undefined,
@@ -386,7 +452,223 @@ const createApiHarness = (execHandler?: (command: string, args: string[]) => Pro
 };
 
 afterEach(async () => {
+  clearPhaseToolMapCache();
   await Promise.all(tempDirs.splice(0, tempDirs.length).map((dir) => rm(dir, { recursive: true, force: true })));
+});
+
+describe("phase-tools: loadPhaseToolMap", () => {
+  it("returns default map when phase_tool_map is absent", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(cwd, "create-spec", "# Workflow: create-spec\n\n## Steps\n1. analyze-prd\n");
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("default:no-config");
+    expect(result.cacheHit).toBe(false);
+    expect(result.error).toBeUndefined();
+    expect(result.map).toEqual(DEFAULT_PHASE_TOOL_MAP);
+  });
+
+  it("loads a valid full override", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(
+      cwd,
+      "create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Read]",
+        "    blocked: [Write, Edit, Bash]",
+        "  implementation:",
+        "    allowed: [Read, Write, Edit]",
+        "    blocked: [Bash]",
+        "  review:",
+        "    allowed: [Read, Grep]",
+        "    blocked: [Write, Edit, Bash]",
+        "  approval:",
+        "    allowed: [Read, sinfonica_advance_step]",
+        "    blocked: [Write, Edit, Bash]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("workflow:custom");
+    expect(result.error).toBeUndefined();
+    expect(result.map.planning.allowed).toEqual(["Read"]);
+    expect(result.map.implementation.blocked).toEqual(["Bash"]);
+  });
+
+  it("merges partial override with defaults", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(
+      cwd,
+      "create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Read, Glob]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("workflow:custom");
+    expect(result.map.planning.allowed).toEqual(["Read", "Glob"]);
+    expect(result.map.planning.blocked).toEqual(["Write"]);
+    expect(result.map.review).toEqual(DEFAULT_PHASE_TOOL_MAP.review);
+  });
+
+  it("falls back to defaults for unknown phase key", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(
+      cwd,
+      "create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  plan:",
+        "    allowed: [Read]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("default:invalid-config");
+    expect(result.error?.code).toBe("PTM-001");
+    expect(result.map).toEqual(DEFAULT_PHASE_TOOL_MAP);
+  });
+
+  it("falls back to defaults when allowed/blocked arrays are missing", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(
+      cwd,
+      "create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Read]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("default:invalid-config");
+    expect(result.error?.code).toBe("PTM-002");
+  });
+
+  it("falls back to defaults for unsupported wildcard pattern", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(
+      cwd,
+      "create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Re*d]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("default:invalid-config");
+    expect(result.error?.code).toBe("PTM-004");
+  });
+
+  it("returns cache hit on repeated loads", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(cwd, "create-spec", "# Workflow: create-spec\n");
+
+    const first = await loadPhaseToolMap(cwd, "create-spec");
+    const second = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(first.cacheHit).toBe(false);
+    expect(second.cacheHit).toBe(true);
+    expect(second.source).toBe("default:no-config");
+  });
+
+  it("clears cache and reloads updated map", async () => {
+    const cwd = await makeTempDir();
+    const workflowId = "create-spec";
+    await writeWorkflowDef(
+      cwd,
+      workflowId,
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Read]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const first = await loadPhaseToolMap(cwd, workflowId);
+    await writeWorkflowDef(
+      cwd,
+      workflowId,
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Read, Grep]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n")
+    );
+
+    const cached = await loadPhaseToolMap(cwd, workflowId);
+    clearPhaseToolMapCache();
+    const reloaded = await loadPhaseToolMap(cwd, workflowId);
+
+    expect(first.map.planning.allowed).toEqual(["Read"]);
+    expect(cached.cacheHit).toBe(true);
+    expect(cached.map.planning.allowed).toEqual(["Read"]);
+    expect(reloaded.cacheHit).toBe(false);
+    expect(reloaded.map.planning.allowed).toEqual(["Read", "Grep"]);
+  });
+
+  it("falls back to workflows/<id>/workflow.md when .sinfonica path is absent", async () => {
+    const cwd = await makeTempDir();
+    await writeWorkflowDef(
+      cwd,
+      "create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Read]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: create-spec",
+      ].join("\n"),
+      { location: "workflows" }
+    );
+
+    const result = await loadPhaseToolMap(cwd, "create-spec");
+
+    expect(result.source).toBe("workflow:custom");
+    expect(result.map.planning.allowed).toEqual(["Read"]);
+  });
 });
 
 describe("advance gate hardening (integration)", () => {
@@ -527,8 +809,6 @@ describe("event handlers", () => {
         );
         results.push(result);
       }
-      
-      console.log("All handler results:", results);
 
       // At least one handler should return a block result
       const blockResult = results.find((r): r is { block: boolean; reason: string } => 
@@ -648,7 +928,7 @@ describe("event handlers", () => {
     const mockCtx: ExtensionContext = {
       cwd,
       ui: {
-        notify: () => {},
+        notify: (_m?: string, _l?: string) => {},
         confirm: async () => false,
         select: async () => undefined,
         input: async () => undefined,
@@ -682,7 +962,7 @@ describe("event handlers", () => {
     const mockCtx: ExtensionContext = {
       cwd,
       ui: {
-        notify: () => {},
+        notify: (_m?: string, _l?: string) => {},
         confirm: async () => false,
         select: async () => undefined,
         input: async () => undefined,
@@ -736,6 +1016,256 @@ describe("event handlers", () => {
     }
     for (const handler of switchHandlers ?? []) {
       await handler({});
+    }
+  });
+
+  it("tool_call in block mode uses custom workflow phase map", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260306-toolcall-custom-block";
+    await initPipeline(cwd, ["create-spec"], "Draft spec", sessionId);
+    // initPipeline creates workflowId as "pipeline-create-spec", so write to that directory
+    await writeWorkflowDef(
+      cwd,
+      "pipeline-create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Glob]",
+        "    blocked: [Read]",
+        "---",
+        "# Workflow: pipeline-create-spec",
+      ].join("\n")
+    );
+
+    const originalEnv = process.env.SINFONICA_PI_ENFORCEMENT;
+    process.env.SINFONICA_PI_ENFORCEMENT = "block";
+
+    try {
+      const harness = createApiHarness();
+      registerSinfonicaExtension(harness.api);
+      const toolCallHandlers = harness.eventHandlers.get("tool_call");
+      expect(toolCallHandlers).toBeDefined();
+
+      const mockCtx: ExtensionContext = {
+        cwd,
+        ui: {
+          notify: (_m?: string, _l?: string) => {},
+          confirm: async () => false,
+          select: async () => undefined,
+          input: async () => undefined,
+          setStatus: () => {},
+          setWidget: () => {},
+        },
+      };
+
+      const results = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Read", input: {} }, mockCtx)));
+      const blockResult = results.find((item): item is { block: true; reason: string } => {
+        return Boolean(item && typeof item === "object" && "block" in item && (item as { block?: boolean }).block === true);
+      });
+
+      expect(blockResult).toEqual({ block: true, reason: expect.stringContaining("not allowed during planning") });
+    } finally {
+      process.env.SINFONICA_PI_ENFORCEMENT = originalEnv;
+    }
+  });
+
+  it("tool_call in warn mode uses custom workflow phase map", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260306-toolcall-custom-warn";
+    await initPipeline(cwd, ["create-spec"], "Draft spec", sessionId);
+    // initPipeline creates workflowId as "pipeline-create-spec"
+    await writeWorkflowDef(
+      cwd,
+      "pipeline-create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Glob]",
+        "    blocked: [Read]",
+        "---",
+        "# Workflow: pipeline-create-spec",
+      ].join("\n")
+    );
+
+    const originalEnv = process.env.SINFONICA_PI_ENFORCEMENT;
+    process.env.SINFONICA_PI_ENFORCEMENT = "warn";
+
+    try {
+      const harness = createApiHarness();
+      registerSinfonicaExtension(harness.api);
+      const toolCallHandlers = harness.eventHandlers.get("tool_call");
+      expect(toolCallHandlers).toBeDefined();
+
+      const notifications: string[] = [];
+      const mockCtx: ExtensionContext = {
+        cwd,
+        ui: {
+          notify: (message) => { notifications.push(message); },
+          confirm: async () => false,
+          select: async () => undefined,
+          input: async () => undefined,
+          setStatus: () => {},
+          setWidget: () => {},
+        },
+      };
+
+      const results = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Read", input: {} }, mockCtx)));
+      const blockResult = results.find((item): item is { block: true } => {
+        return Boolean(item && typeof item === "object" && "block" in item);
+      });
+
+      expect(blockResult).toBeUndefined();
+      expect(notifications.some((msg) => msg.includes("not allowed during planning"))).toBe(true);
+    } finally {
+      process.env.SINFONICA_PI_ENFORCEMENT = originalEnv;
+    }
+  });
+
+  it("reload clears phase map cache so updated workflow policy takes effect", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260306-toolcall-reload";
+    await initPipeline(cwd, ["create-spec"], "Draft spec", sessionId);
+    // initPipeline creates workflowId as "pipeline-create-spec"
+    await writeWorkflowDef(
+      cwd,
+      "pipeline-create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  planning:",
+        "    allowed: [Glob]",
+        "    blocked: [Read]",
+        "---",
+        "# Workflow: pipeline-create-spec",
+      ].join("\n")
+    );
+
+    const originalEnv = process.env.SINFONICA_PI_ENFORCEMENT;
+    process.env.SINFONICA_PI_ENFORCEMENT = "block";
+
+    try {
+      const harness = createApiHarness();
+      registerSinfonicaExtension(harness.api);
+      const toolCallHandlers = harness.eventHandlers.get("tool_call");
+      const command = harness.commands.find((entry) => entry.name === "sinfonica");
+      expect(toolCallHandlers).toBeDefined();
+      expect(command).toBeDefined();
+
+      const notifications: string[] = [];
+      const commandCtx = {
+        ...makeTestCtx(cwd),
+        ui: {
+          notify: (message: string) => { notifications.push(message); },
+          confirm: async () => false,
+          select: async () => undefined,
+          input: async () => undefined,
+          setStatus: () => {},
+          setWidget: () => {},
+        },
+      };
+      const toolCtx: ExtensionContext = {
+        cwd,
+        ui: commandCtx.ui,
+      };
+
+      const first = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Read", input: {} }, toolCtx)));
+      const firstBlocked = first.find((item): item is { block: true } => {
+        return Boolean(item && typeof item === "object" && "block" in item && (item as { block?: boolean }).block === true);
+      });
+      expect(firstBlocked).toBeDefined();
+
+      await writeWorkflowDef(
+        cwd,
+        "pipeline-create-spec",
+        [
+          "---",
+          "phase_tool_map:",
+          "  planning:",
+          "    allowed: [Read, Glob]",
+          "    blocked: [Write]",
+          "---",
+          "# Workflow: pipeline-create-spec",
+        ].join("\n")
+      );
+
+      const beforeReload = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Read", input: {} }, toolCtx)));
+      const beforeReloadBlocked = beforeReload.find((item): item is { block: true } => {
+        return Boolean(item && typeof item === "object" && "block" in item && (item as { block?: boolean }).block === true);
+      });
+      expect(beforeReloadBlocked).toBeDefined();
+
+      await command!.handler("reload", commandCtx);
+
+      const afterReload = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Read", input: {} }, toolCtx)));
+      const afterReloadBlocked = afterReload.find((item): item is { block: true } => {
+        return Boolean(item && typeof item === "object" && "block" in item && (item as { block?: boolean }).block === true);
+      });
+      expect(afterReloadBlocked).toBeUndefined();
+      expect(notifications.some((msg) => msg.toLowerCase().includes("phase map cache cleared"))).toBe(true);
+    } finally {
+      process.env.SINFONICA_PI_ENFORCEMENT = originalEnv;
+    }
+  });
+
+  it("invalid workflow map warns once and falls back to default policy", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260306-toolcall-invalid-map";
+    await initPipeline(cwd, ["create-spec"], "Draft spec", sessionId);
+    // initPipeline creates workflowId as "pipeline-create-spec"
+    await writeWorkflowDef(
+      cwd,
+      "pipeline-create-spec",
+      [
+        "---",
+        "phase_tool_map:",
+        "  plan:",
+        "    allowed: [Read]",
+        "    blocked: [Write]",
+        "---",
+        "# Workflow: pipeline-create-spec",
+      ].join("\n")
+    );
+
+    const originalEnv = process.env.SINFONICA_PI_ENFORCEMENT;
+    process.env.SINFONICA_PI_ENFORCEMENT = "block";
+
+    try {
+      const harness = createApiHarness();
+      registerSinfonicaExtension(harness.api);
+      const toolCallHandlers = harness.eventHandlers.get("tool_call");
+      expect(toolCallHandlers).toBeDefined();
+
+      const notifications: Array<{ message: string; level?: string }> = [];
+      const mockCtx: ExtensionContext = {
+        cwd,
+        ui: {
+          notify: (message, level) => notifications.push({ message, level }),
+          confirm: async () => false,
+          select: async () => undefined,
+          input: async () => undefined,
+          setStatus: () => {},
+          setWidget: () => {},
+        },
+      };
+
+      const first = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Write", input: {} }, mockCtx)));
+      const second = await Promise.all(toolCallHandlers!.map((handler) => handler({ toolName: "Write", input: {} }, mockCtx)));
+
+      const firstBlocked = first.find((item): item is { block: true } => {
+        return Boolean(item && typeof item === "object" && "block" in item && (item as { block?: boolean }).block === true);
+      });
+      const secondBlocked = second.find((item): item is { block: true } => {
+        return Boolean(item && typeof item === "object" && "block" in item && (item as { block?: boolean }).block === true);
+      });
+
+      expect(firstBlocked).toBeDefined();
+      expect(secondBlocked).toBeDefined();
+      const mapWarnings = notifications.filter((n) => n.level === "warning" && n.message.includes("[PTM-001]"));
+      expect(mapWarnings).toHaveLength(1);
+    } finally {
+      process.env.SINFONICA_PI_ENFORCEMENT = originalEnv;
     }
   });
 });
