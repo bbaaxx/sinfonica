@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { readLatestHandoffEnvelope } from "./handoff-reader.ts";
 import { readActiveWorkflowStatus } from "./widget/status.ts";
 
@@ -11,15 +14,16 @@ type ContextMessage = {
   customType: string;
   content: string;
   details?: unknown;
-  display?: "hidden" | "inline" | "bubble";
+  display: boolean;
 };
 
 type BeforeAgentStartResult = {
-  message: ContextMessage;
+  message?: ContextMessage;
+  systemPrompt?: string;
 };
 
 type ContextInjectorApi = {
-  on?: (
+  on: (
     event: "before_agent_start",
     handler: (
       event: BeforeAgentStartEvent,
@@ -56,6 +60,7 @@ const buildInjectionText = (input: {
   status: string;
   persona: string | null;
   artifacts: string[];
+  sessionId: string;
 }): string => {
   const lines = [
     "Active Sinfonica workflow context:",
@@ -63,6 +68,7 @@ const buildInjectionText = (input: {
     `- Status: ${input.status}`,
     `- Step: ${input.currentStep}/${input.totalSteps}`,
     `- Persona: ${input.persona ?? "unknown"}`,
+    `- Session: ${input.sessionId}`,
   ];
 
   if (input.artifacts.length > 0) {
@@ -70,6 +76,13 @@ const buildInjectionText = (input: {
   } else {
     lines.push("- Artifacts: none recorded");
   }
+
+  if (input.persona) {
+    lines.push(`- Delegation: You are operating as ${input.persona}. Current step: ${input.currentStep}/${input.totalSteps} in ${input.workflowId}.`);
+  }
+
+  lines.push("- Workflow Discipline: Do not create or modify project files until the active step is explicitly advanced with sinfonica_advance_step.");
+  lines.push("- Required Action: If implementation is requested, explain current workflow stage and request/perform the proper advance decision first.");
 
   return lines.join("\n");
 };
@@ -81,6 +94,7 @@ const readPersonaAndArtifacts = async (
   let persona: string | null = null;
   let artifacts: string[] = [];
 
+  // Try dispatch envelope first
   try {
     const dispatchEnvelope = await readLatestHandoffEnvelope(cwd, sessionId, "dispatch");
     persona =
@@ -89,6 +103,20 @@ const readPersonaAndArtifacts = async (
       normalizePersona(dispatchEnvelope.frontmatter.source_persona);
   } catch {
     persona = null;
+  }
+
+  // Fallback: check workflow index frontmatter for persona
+  if (!persona) {
+    try {
+      const workflowPath = join(cwd, ".sinfonica", "handoffs", sessionId, "workflow.md");
+      const raw = await readFile(workflowPath, "utf8");
+      const personaMatch = raw.match(/^persona:\s*(.+)$/im);
+      if (personaMatch) {
+        persona = normalizePersona(personaMatch[1]);
+      }
+    } catch {
+      // Ignore — persona remains null
+    }
   }
 
   try {
@@ -104,7 +132,7 @@ const readPersonaAndArtifacts = async (
 export const registerWorkflowContextInjector = (pi: ContextInjectorApi, options: { cwd?: string } = {}): void => {
   const defaultCwd = options.cwd ?? process.cwd();
 
-  pi.on?.("before_agent_start", async (event, ctx) => {
+  pi.on("before_agent_start", async (event, ctx) => {
     const cwd =
       typeof ctx?.cwd === "string" && ctx.cwd.trim().length > 0
         ? ctx.cwd
@@ -125,6 +153,7 @@ export const registerWorkflowContextInjector = (pi: ContextInjectorApi, options:
       status: status.status,
       persona,
       artifacts,
+      sessionId: status.sessionId,
     });
 
     return {
@@ -140,8 +169,11 @@ export const registerWorkflowContextInjector = (pi: ContextInjectorApi, options:
           persona,
           artifacts,
         },
-        display: "hidden",
+        display: false,
       },
+      systemPrompt: persona
+        ? `Active Sinfonica role: ${persona}. Step: ${status.currentStep}/${status.totalSteps}. Workflow: ${status.workflowId}.`
+        : undefined,
     };
   });
 };

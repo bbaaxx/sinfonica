@@ -42,7 +42,8 @@ describe("initProject Pi surface generation", () => {
       const skillPath = join(cwd, ".pi/skills", workflow, "SKILL.md");
       const skill = await readFile(skillPath, "utf8");
       expect(skill).toContain(`name: ${workflow}`);
-      expect(skill).toContain(`sinfonica start ${workflow}`);
+      expect(skill).toContain("sinfonica_start_workflow");
+      expect(skill).toContain(`workflowType: ${workflow}`);
     }
   });
 
@@ -86,6 +87,7 @@ describe("initProject Pi surface generation", () => {
     const skill = await readFile(skillPath, "utf8");
     expect(skill).not.toBe("custom-pi-skill\n");
     expect(skill).toContain("name: create-prd");
-    expect(skill).toContain("sinfonica start create-prd");
+    expect(skill).toContain("sinfonica_start_workflow");
+    expect(skill).toContain("workflowType: create-prd");
   });
 });

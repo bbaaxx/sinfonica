@@ -80,6 +80,12 @@ describe("validatePersonaFrontmatter", () => {
     expect(result.warnings.some((item) => item.ruleId === "FM-08")).toBe(true);
   });
 
+  it("accepts single emoji grapheme icons with variation selector", () => {
+    const withVariationSelector = validPersona.replace("icon: 🎯", "icon: 🛠️");
+    const result = validatePersonaFrontmatter("agents/maestro.md", withVariationSelector);
+    expect(result.warnings.some((item) => item.ruleId === "FM-08")).toBe(false);
+  });
+
   it("warns on capabilities shape violations", () => {
     const tooMany = `---\npersona_id: maestro\nname: Maestro\nrole: Orchestrator\ndescription: d\ncapabilities:\n${Array.from({ length: 11 })
       .map((_, i) => `  - c${i}`)

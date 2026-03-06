@@ -46,8 +46,10 @@ describe("initProject", () => {
     await expect(stat(join(cwd, ".sinfonica/agents"))).resolves.toBeDefined();
     await expect(stat(join(cwd, ".sinfonica/handoffs"))).resolves.toBeDefined();
     await expect(stat(join(cwd, ".sinfonica/memory"))).resolves.toBeDefined();
+    await expect(stat(join(cwd, ".sinfonica/workflows"))).resolves.toBeDefined();
 
     await expect(readFile(join(cwd, ".sinfonica/config.yaml"), "utf8")).resolves.toContain("version:");
+    await expect(readFile(join(cwd, ".sinfonica/workflows/create-prd/workflow.md"), "utf8")).resolves.toContain("create-prd");
 
     for (const persona of FRAMEWORK_PERSONAS) {
       await expect(readFile(join(cwd, ".sinfonica/agents", `${persona.id}.md`), "utf8")).resolves.toContain(
@@ -63,7 +65,7 @@ describe("initProject", () => {
     expect(pluginContent).toContain("SinfonicaEnforcement");
     expect(pluginContent).toContain("tool.execute.before");
     expect(pluginContent).toContain("createTddEnforcerHandler");
-    await expect(readFile(join(cwd, "opencode.json"), "utf8")).resolves.toContain("sinfonica");
+    await expect(readFile(join(cwd, ".opencode/opencode.json"), "utf8")).resolves.toContain("sinfonica");
   });
 
   it("is idempotent and preserves customized files", async () => {

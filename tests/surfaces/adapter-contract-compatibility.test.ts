@@ -15,16 +15,47 @@ type ExecResult = { stdout: string; stderr: string; code: number | null };
 
 type TestContext = {
   cwd: string;
-  ui: { notify: (message: string) => void };
+  ui: {
+    notify: (message: string) => void;
+    confirm: (title: string, message: string) => Promise<boolean>;
+    select: (title: string, options: string[]) => Promise<string | undefined>;
+    input: (title: string, placeholder?: string) => Promise<string | undefined>;
+    setStatus: (id: string, text: string | undefined) => void;
+    setWidget: (id: string, lines: string[] | undefined) => void;
+  };
+  waitForIdle: () => Promise<void>;
+  newSession: () => Promise<void>;
+  fork: () => Promise<void>;
+  navigateTree: () => Promise<void>;
+  reload: () => Promise<void>;
 };
 
 type RegisteredTool = {
   name: string;
-  execute: (toolCallId: string, params: unknown, signal?: AbortSignal, onUpdate?: unknown, ctx?: TestContext) => Promise<{
+  execute: (toolCallId: string, params: unknown, signal: AbortSignal, onUpdate: unknown, ctx: TestContext) => Promise<{
     details: AdapterOperationDetails;
     isError?: boolean;
   }>;
 };
+
+const dummySignal = new AbortController().signal;
+
+const makeTestCtx = (): TestContext => ({
+  cwd: process.cwd(),
+  ui: {
+    notify: () => {},
+    confirm: async () => false,
+    select: async () => undefined,
+    input: async () => undefined,
+    setStatus: () => {},
+    setWidget: () => {},
+  },
+  waitForIdle: async () => {},
+  newSession: async () => {},
+  fork: async () => {},
+  navigateTree: async () => {},
+  reload: async () => {},
+});
 
 const createPiHarness = (execHandler: (command: string, args: string[]) => Promise<ExecResult>) => {
   const tools: RegisteredTool[] = [];
@@ -35,6 +66,8 @@ const createPiHarness = (execHandler: (command: string, args: string[]) => Promi
     },
     registerCommand: () => {},
     exec: (command, args) => execHandler(command, args),
+    on: () => {},
+    sendMessage: () => {},
   };
 
   registerSinfonicaExtension(api);
@@ -52,7 +85,7 @@ describe("adapter contract compatibility", () => {
     const tool = harness.tools.find((entry) => entry.name === "sinfonica_start_workflow");
     expect(tool).toBeDefined();
 
-    const result = await tool!.execute("tc-1", { workflowType: "create-spec", context: "Draft stage flow" });
+    const result = await tool!.execute("tc-1", { workflowType: "create-spec", context: "Draft stage flow" }, dummySignal, undefined, makeTestCtx());
     assertValid(result.details);
     expect(result.details.operation).toBe("workflow.start");
   });
@@ -96,8 +129,8 @@ describe("adapter contract compatibility", () => {
     expect(advanceTool).toBeDefined();
     expect(listTool).toBeDefined();
 
-    const start = await startTool!.execute("tc-2", { workflowType: "dev-story" });
-    const advance = await advanceTool!.execute("tc-3", { decision: "approve" });
+    const start = await startTool!.execute("tc-2", { workflowType: "dev-story" }, dummySignal, undefined, makeTestCtx());
+    const advance = await advanceTool!.execute("tc-3", { decision: "request-revision" }, dummySignal, undefined, makeTestCtx());
     const list = normalizeOpenCodeOperationError({
       operation: "status.reporting",
       command: "sinfonica list",
@@ -106,7 +139,7 @@ describe("adapter contract compatibility", () => {
     });
 
     expect(start.details.payload).toMatchObject({ workflowType: "dev-story", context: null });
-    expect(advance.details.payload).toMatchObject({ decision: "approve", feedback: null });
+    expect(advance.details.payload).toMatchObject({ decision: "request-revision", feedback: null });
     expect(advance.details.error).toMatchObject({ message: "cannot advance" });
     expect(list.payload).toMatchObject({ workflows: [], count: 0 });
     expect(list.error).toMatchObject({ message: "workflow scan failed" });

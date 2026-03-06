@@ -18,7 +18,7 @@ const KNOWN_LICENSES = new Set([
 
 const kebabCasePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const semverPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const emojiPattern = /^\p{Emoji_Presentation}$/u;
+const emojiPattern = /^\p{Extended_Pictographic}(?:\uFE0F)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F)?)*$/u;
 const spdxPattern = /^[A-Za-z0-9-.+]+$/;
 
 type ParseResult = {

@@ -3,7 +3,14 @@ import type { ValidationIssue, ValidationResult } from "./types.js";
 const REQUIRED_SECTIONS = ["Identity", "Critical Actions", "Task Protocol"];
 const RECOMMENDED_SECTIONS = ["Comm Style", "Role Def", "Principles"];
 const INTERACTIVE_SECTIONS = ["Activation Sequence", "Menu"];
-const OPTIONAL_SECTIONS = ["Handoff Instructions", "Examples", "Notes"];
+const OPTIONAL_SECTIONS = [
+  "Handoff Instructions",
+  "Delegation Patterns",
+  "Subagent Orchestration Protocol",
+  "When Spawned by Maestro",
+  "Examples",
+  "Notes"
+];
 
 const KNOWN_SECTIONS = new Set([
   ...REQUIRED_SECTIONS,
@@ -23,6 +30,9 @@ const CANONICAL_ORDER = [
   "Menu",
   "Rules",
   "Handoff Instructions",
+  "Delegation Patterns",
+  "Subagent Orchestration Protocol",
+  "When Spawned by Maestro",
   "Custom Instructions",
   "Examples",
   "Notes"

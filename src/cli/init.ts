@@ -1,7 +1,8 @@
 import { createRequire } from "node:module";
 import { constants } from "node:fs";
-import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 
@@ -190,6 +191,17 @@ const ensureParentDirectory = async (path: string): Promise<void> => {
   await mkdir(dirname(path), { recursive: true });
 };
 
+const copyFileIfMissing = async (sourcePath: string, targetPath: string): Promise<boolean> => {
+  try {
+    await access(targetPath, constants.F_OK);
+    return false;
+  } catch {
+    await ensureParentDirectory(targetPath);
+    await copyFile(sourcePath, targetPath);
+    return true;
+  }
+};
+
 const writeIfMissing = async (path: string, content: string): Promise<boolean> => {
   try {
     await access(path, constants.F_OK);
@@ -238,9 +250,10 @@ Use this skill when the user asks to run the ${skill.workflowId} workflow.
 
 ## Start workflow
 
-\`\`\`bash
-sinfonica start ${skill.workflowId}
-\`\`\`
+Use the \`sinfonica_start_workflow\` tool with:
+
+- \`workflowType: ${skill.workflowId}\`
+- \`context\` (optional)
 `;
 
 const writePiPackageConfig = async (cwd: string, force: boolean): Promise<void> => {
@@ -272,7 +285,7 @@ const writePiSkillStubs = async (cwd: string, force: boolean): Promise<void> => 
 };
 
 const writeOpenCodeConfig = async (cwd: string): Promise<void> => {
-  const path = join(cwd, "opencode.json");
+  const path = join(cwd, ".opencode/opencode.json");
   const existing = await readJson(path);
   const next = mergeOpenCodeConfig(existing ?? {}, PERSONA_PROFILES);
   const nextText = `${JSON.stringify(next, null, 2)}\n`;
@@ -285,6 +298,70 @@ const writeOpenCodeConfig = async (cwd: string): Promise<void> => {
   }
 
   await writeFile(path, nextText, "utf8");
+};
+
+const resolveFrameworkWorkflowsDir = async (): Promise<string | null> => {
+  const candidates = [
+    fileURLToPath(new URL("../../workflows", import.meta.url)),
+    fileURLToPath(new URL("../../../workflows", import.meta.url))
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const details = await stat(candidate);
+      if (details.isDirectory()) {
+        return candidate;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+};
+
+const copyDirectoryTree = async (sourceDir: string, targetDir: string, force: boolean): Promise<void> => {
+  await ensureDirectory(targetDir);
+  const entries = await readdir(sourceDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.name.startsWith(".")) {
+      continue;
+    }
+
+    const sourcePath = join(sourceDir, entry.name);
+    const targetPath = join(targetDir, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectoryTree(sourcePath, targetPath, force);
+      continue;
+    }
+
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    if (force) {
+      await ensureParentDirectory(targetPath);
+      await copyFile(sourcePath, targetPath);
+      continue;
+    }
+
+    await copyFileIfMissing(sourcePath, targetPath);
+  }
+};
+
+const scaffoldWorkflows = async (cwd: string, force: boolean): Promise<void> => {
+  const targetDir = join(cwd, ".sinfonica/workflows");
+  await ensureDirectory(targetDir);
+
+  const sourceDir = await resolveFrameworkWorkflowsDir();
+  if (!sourceDir) {
+    console.warn("[sinfonica:init] Framework workflows directory not found; created empty .sinfonica/workflows.");
+    return;
+  }
+
+  await copyDirectoryTree(sourceDir, targetDir, force);
 };
 
 const readInstalledVersion = async (cwd: string): Promise<string | null> => {
@@ -352,6 +429,7 @@ export const initProject = async (
   await ensureDirectory(join(cwd, ".sinfonica/agents"));
   await ensureDirectory(join(cwd, ".sinfonica/handoffs"));
   await ensureDirectory(join(cwd, ".sinfonica/memory"));
+  await scaffoldWorkflows(cwd, force);
 
   const configPath = join(cwd, ".sinfonica/config.yaml");
   const configYaml = toConfigYaml(options.config ?? DEFAULT_CONFIG);

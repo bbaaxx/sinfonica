@@ -50,6 +50,10 @@ describe("Clean Init (P1-EXIT-8): sinfonica init --yes on a clean directory", ()
     await expect(access(join(tmpDir, ".sinfonica/memory"))).resolves.toBeUndefined();
   });
 
+  it("generates .sinfonica/workflows/ directory", async () => {
+    await expect(access(join(tmpDir, ".sinfonica/workflows"))).resolves.toBeUndefined();
+  });
+
   it("generates .sinfonica/config.yaml", async () => {
     await expect(access(join(tmpDir, ".sinfonica/config.yaml"))).resolves.toBeUndefined();
   });
@@ -60,6 +64,13 @@ describe("Clean Init (P1-EXIT-8): sinfonica init --yes on a clean directory", ()
       await expect(
         access(join(tmpDir, `.sinfonica/agents/${persona}.md`))
       ).resolves.toBeUndefined();
+    }
+  });
+
+  it("generates built-in workflow definitions in .sinfonica/workflows/", async () => {
+    const workflows = ["create-prd", "create-spec", "dev-story", "code-review"];
+    for (const workflow of workflows) {
+      await expect(access(join(tmpDir, `.sinfonica/workflows/${workflow}/workflow.md`))).resolves.toBeUndefined();
     }
   });
 
@@ -99,12 +110,12 @@ describe("Clean Init (P1-EXIT-8): sinfonica init --yes on a clean directory", ()
     ).resolves.toBeUndefined();
   });
 
-  it("generates opencode.json", async () => {
-    await expect(access(join(tmpDir, "opencode.json"))).resolves.toBeUndefined();
+  it("generates .opencode/opencode.json", async () => {
+    await expect(access(join(tmpDir, ".opencode/opencode.json"))).resolves.toBeUndefined();
   });
 
-  it("writes opencode.json with correct opencode schema ($schema, agent singular, mode/tools/description)", async () => {
-    const config = JSON.parse(await readFile(join(tmpDir, "opencode.json"), "utf8")) as Record<string, unknown>;
+  it("writes .opencode/opencode.json with correct opencode schema ($schema, agent singular, mode/tools/description)", async () => {
+    const config = JSON.parse(await readFile(join(tmpDir, ".opencode/opencode.json"), "utf8")) as Record<string, unknown>;
 
     // Must have $schema
     expect(config.$schema).toBe("https://opencode.ai/config.json");
@@ -163,6 +174,7 @@ describe("Clean Init (P1-EXIT-8): sinfonica init --yes on a clean directory", ()
       true
     );
     expect(result.errorCount).toBe(0);
+    expect(result.warningCount).toBe(0);
   });
 
   for (const persona of ["maestro", "libretto", "amadeus", "coda", "rondo", "metronome"]) {
@@ -174,6 +186,7 @@ describe("Clean Init (P1-EXIT-8): sinfonica init --yes on a clean directory", ()
       const fileResult = result.files[0];
       expect(fileResult).toBeDefined();
       expect(fileResult!.errors).toHaveLength(0);
+      expect(fileResult!.warnings).toHaveLength(0);
     });
   }
 });

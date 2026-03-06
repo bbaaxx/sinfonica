@@ -5,18 +5,32 @@ import registerSinfonicaExtension, { type ExtensionAPI } from "../index.ts";
 
 type ExecResult = { stdout: string; stderr: string; code: number | null };
 
-type TestContext = {
-  cwd: string;
-  ui: { notify: (message: string) => void };
-};
+const makeTestCtx = (cwd: string) => ({
+  cwd,
+  ui: {
+    notify: () => {},
+    confirm: async () => false,
+    select: async () => undefined as string | undefined,
+    input: async () => undefined as string | undefined,
+    setStatus: () => {},
+    setWidget: () => {},
+  },
+  waitForIdle: async () => {},
+  newSession: async () => {},
+  fork: async () => {},
+  navigateTree: async () => {},
+  reload: async () => {},
+});
 
 type RegisteredTool = {
   name: string;
-  execute: (toolCallId: string, params: unknown, signal?: AbortSignal, onUpdate?: unknown, ctx?: TestContext) => Promise<{
+  execute: (toolCallId: string, params: unknown, signal: AbortSignal, onUpdate: unknown, ctx: ReturnType<typeof makeTestCtx>) => Promise<{
     details: unknown;
     isError?: boolean;
   }>;
 };
+
+const dummySignal = new AbortController().signal;
 
 const createHarness = (execHandler: (command: string, args: string[]) => Promise<ExecResult>) => {
   const tools: RegisteredTool[] = [];
@@ -26,6 +40,8 @@ const createHarness = (execHandler: (command: string, args: string[]) => Promise
     },
     registerCommand: () => {},
     exec: (command, args) => execHandler(command, args),
+    on: () => {},
+    sendMessage: () => {},
   };
 
   registerSinfonicaExtension(api);
@@ -46,8 +62,8 @@ describe("pi extension phase 3 adapter contract", () => {
     expect(startTool).toBeDefined();
     expect(advanceTool).toBeDefined();
 
-    const startResult = await startTool!.execute("t-1", { workflowType: "create-prd" });
-    const advanceResult = await advanceTool!.execute("t-2", { decision: "approve" });
+    const startResult = await startTool!.execute("t-1", { workflowType: "create-prd" }, dummySignal, undefined, makeTestCtx(process.cwd()));
+    const advanceResult = await advanceTool!.execute("t-2", { decision: "request-revision" }, dummySignal, undefined, makeTestCtx(process.cwd()));
 
     expect(validateAdapterOperationDetails(startResult.details)).toEqual([]);
     expect(validateAdapterOperationDetails(advanceResult.details)).toEqual([]);

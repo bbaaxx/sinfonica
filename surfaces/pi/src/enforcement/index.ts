@@ -4,21 +4,27 @@ import { loadEnforcementRules, type EnforcementRuleDefinition } from "./loader.t
 type NotifyLevel = "info" | "warning" | "error";
 
 type ToolCallEvent = {
-  toolName?: string;
-  tool?: { name?: string };
-  arguments?: unknown;
-  params?: unknown;
-  block?: (reason: string) => void;
-  preventDefault?: (reason?: string) => void;
-  injectContext?: (context: string) => void;
-  setContext?: (context: string) => void;
-  notify?: (message: string, level?: NotifyLevel) => void;
+  toolName: string;
+  toolCallId: string;
+  input: unknown;
 };
 
-type ToolCallSubscriber = (event: ToolCallEvent) => void | Promise<void>;
+type ToolCallReturn =
+  | { block: true; reason: string }
+  | void;
 
-type ToolCallEventApi = {
-  on?: (event: "tool_call", handler: ToolCallSubscriber) => void;
+type ExtensionContext = {
+  cwd: string;
+  ui: {
+    notify: (message: string, level?: NotifyLevel) => void;
+  };
+};
+
+type EnforcementEventApi = {
+  on: (
+    event: string,
+    handler: (event: Record<string, unknown>, ctx?: ExtensionContext) => ToolCallReturn | Promise<ToolCallReturn>
+  ) => void;
 };
 
 type EnforcementBridgeOptions = {
@@ -31,33 +37,19 @@ export type EnforcementBridgeHandle = {
   getRules: () => EnforcementRuleDefinition[];
 };
 
-const eventToolName = (event: ToolCallEvent): string => {
+const eventToolName = (event: Record<string, unknown>): string => {
   if (typeof event.toolName === "string" && event.toolName.trim().length > 0) {
     return event.toolName.trim();
   }
-  if (event.tool && typeof event.tool.name === "string" && event.tool.name.trim().length > 0) {
-    return event.tool.name.trim();
+  const tool = event.tool as { name?: string } | undefined;
+  if (tool && typeof tool.name === "string" && tool.name.trim().length > 0) {
+    return tool.name.trim();
   }
   return "";
 };
 
-const notifyWithFallback = (
-  optionsNotify: EnforcementBridgeOptions["notify"],
-  eventNotify: ToolCallEvent["notify"],
-  message: string,
-  level: NotifyLevel
-): void => {
-  if (eventNotify) {
-    eventNotify(message, level);
-    return;
-  }
-  if (optionsNotify) {
-    optionsNotify(message, level);
-  }
-};
-
 export const registerEnforcementBridge = (
-  pi: ToolCallEventApi,
+  pi: EnforcementEventApi,
   options: EnforcementBridgeOptions = {}
 ): EnforcementBridgeHandle => {
   let activeCwd = options.cwd ?? process.cwd();
@@ -71,45 +63,36 @@ export const registerEnforcementBridge = (
 
   void reload(activeCwd).catch(() => undefined);
 
-  if (pi.on) {
-    pi.on("tool_call", async (event) => {
-      const toolName = eventToolName(event);
-      if (!toolName) {
-        return;
-      }
+  pi.on("tool_call", (event, ctx) => {
+    const toolName = eventToolName(event);
+    if (!toolName) {
+      return;
+    }
 
-      const check = checkToolCallAgainstRules(
-        {
-          toolName,
-          arguments: event.arguments ?? event.params,
-        },
-        activeRules
-      );
+    const check = checkToolCallAgainstRules(
+      {
+        toolName,
+        arguments: event.input ?? event.arguments ?? event.params,
+      },
+      activeRules
+    );
 
-      for (const context of check.injectedContext) {
-        if (event.injectContext) {
-          event.injectContext(context);
-        } else if (event.setContext) {
-          event.setContext(context);
-        }
+    for (const warning of check.advisory) {
+      const message = `[${warning.id}] ${warning.message}`;
+      if (ctx?.ui?.notify) {
+        ctx.ui.notify(message, "warning");
+      } else if (options.notify) {
+        options.notify(message, "warning");
       }
+    }
 
-      for (const warning of check.advisory) {
-        notifyWithFallback(options.notify, event.notify, `[${warning.id}] ${warning.message}`, "warning");
-      }
+    if (check.blocking.length === 0) {
+      return;
+    }
 
-      if (check.blocking.length === 0) {
-        return;
-      }
-
-      const reason = check.blocking.map((item) => `[${item.id}] ${item.message}`).join("; ");
-      if (event.block) {
-        event.block(reason);
-      } else if (event.preventDefault) {
-        event.preventDefault(reason);
-      }
-    });
-  }
+    const reason = check.blocking.map((item) => `[${item.id}] ${item.message}`).join("; ");
+    return { block: true, reason };
+  });
 
   return {
     reload,

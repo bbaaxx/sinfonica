@@ -75,7 +75,7 @@ describe("phase 4 enforcement checker", () => {
 });
 
 describe("phase 4 enforcement interceptor", () => {
-  it("blocks execution for blocking violations", async () => {
+  it("returns blocking object for blocking violations", async () => {
     const cwd = await makeTempDir();
     await writeRule(
       cwd,
@@ -91,9 +91,9 @@ describe("phase 4 enforcement interceptor", () => {
       ].join("\n")
     );
 
-    let toolCallHandler: ((event: Record<string, unknown>) => Promise<unknown>) | undefined;
+    let toolCallHandler: ((event: Record<string, unknown>, ctx?: { cwd: string; ui: { notify: (message: string, level?: "info" | "warning" | "error") => void } }) => unknown) | undefined;
     const api = {
-      on: (event: string, handler: (payload: Record<string, unknown>) => Promise<unknown>) => {
+      on: (event: string, handler: (event: Record<string, unknown>, ctx?: { cwd: string; ui: { notify: (message: string, level?: "info" | "warning" | "error") => void } }) => unknown) => {
         if (event === "tool_call") {
           toolCallHandler = handler;
         }
@@ -104,16 +104,13 @@ describe("phase 4 enforcement interceptor", () => {
     const bridge = registerEnforcementBridge(api, { cwd, notify });
     await bridge.reload(cwd);
 
-    const block = vi.fn();
-    const injectContext = vi.fn();
-    await toolCallHandler?.({ toolName: "bash", arguments: { command: "ls" }, block, injectContext });
+    const result = toolCallHandler?.({ toolName: "bash", input: { command: "ls" } });
 
-    expect(block).toHaveBeenCalledTimes(1);
-    expect(injectContext).not.toHaveBeenCalled();
+    expect(result).toEqual({ block: true, reason: expect.stringContaining("ENF-901") });
     expect(notify).not.toHaveBeenCalled();
   });
 
-  it("injects context and notifies for non-blocking violations", async () => {
+  it("notifies for advisory violations and returns void for non-blocking", async () => {
     const cwd = await makeTempDir();
     await writeRule(
       cwd,
@@ -128,23 +125,10 @@ describe("phase 4 enforcement interceptor", () => {
         "---",
       ].join("\n")
     );
-    await writeRule(
-      cwd,
-      "enf-903.md",
-      [
-        "---",
-        "id: ENF-903",
-        "severity: injection",
-        "patterns:",
-        "  - ^bash$",
-        "inject: include current workflow state",
-        "---",
-      ].join("\n")
-    );
 
-    let toolCallHandler: ((event: Record<string, unknown>) => Promise<unknown>) | undefined;
+    let toolCallHandler: ((event: Record<string, unknown>, ctx?: { cwd: string; ui: { notify: (message: string, level?: "info" | "warning" | "error") => void } }) => unknown) | undefined;
     const api = {
-      on: (event: string, handler: (payload: Record<string, unknown>) => Promise<unknown>) => {
+      on: (event: string, handler: (event: Record<string, unknown>, ctx?: { cwd: string; ui: { notify: (message: string, level?: "info" | "warning" | "error") => void } }) => unknown) => {
         if (event === "tool_call") {
           toolCallHandler = handler;
         }
@@ -155,19 +139,20 @@ describe("phase 4 enforcement interceptor", () => {
     const bridge = registerEnforcementBridge(api, { cwd, notify });
     await bridge.reload(cwd);
 
-    const block = vi.fn();
-    const injectContext = vi.fn();
-    await toolCallHandler?.({ toolName: "bash", arguments: { command: "ls" }, block, injectContext });
+    const result = toolCallHandler?.({ toolName: "bash", input: { command: "ls" } });
 
-    expect(block).not.toHaveBeenCalled();
-    expect(injectContext).toHaveBeenCalledWith("include current workflow state");
+    expect(result).toBeUndefined();
     expect(notify).toHaveBeenCalledWith(expect.stringContaining("ENF-902"), "warning");
   });
 
   it("reload command refreshes rules for /sinfonica reload", async () => {
     const cwd = await makeTempDir();
     const tools: Array<{ name: string }> = [];
-    const commands: Array<{ name: string; handler: (args: string | undefined, ctx: { cwd: string; ui: { notify: (message: string, level?: "info" | "warning" | "error") => void } }) => Promise<void> }> = [];
+    const commands: Array<{ name: string; handler: (args: string | undefined, ctx: {
+      cwd: string;
+      ui: { notify: (message: string, level?: "info" | "warning" | "error") => void; confirm: (t: string, m: string) => Promise<boolean>; select: (t: string, o: string[]) => Promise<string | undefined>; input: (t: string, p?: string) => Promise<string | undefined>; setStatus: (id: string, t: string | undefined) => void; setWidget: (id: string, l: string[] | undefined) => void };
+      waitForIdle: () => Promise<void>; newSession: () => Promise<void>; fork: () => Promise<void>; navigateTree: () => Promise<void>; reload: () => Promise<void>;
+    }) => Promise<void> }> = [];
     const notifications: string[] = [];
 
     const api: ExtensionAPI = {
@@ -179,6 +164,7 @@ describe("phase 4 enforcement interceptor", () => {
       },
       exec: async () => ({ stdout: "", stderr: "", code: 0 }),
       on: () => {},
+      sendMessage: () => {},
     };
 
     registerSinfonicaExtension(api);
@@ -191,7 +177,17 @@ describe("phase 4 enforcement interceptor", () => {
       cwd,
       ui: {
         notify: (message) => notifications.push(message),
+        confirm: async () => false,
+        select: async () => undefined,
+        input: async () => undefined,
+        setStatus: () => {},
+        setWidget: () => {},
       },
+      waitForIdle: async () => {},
+      newSession: async () => {},
+      fork: async () => {},
+      navigateTree: async () => {},
+      reload: async () => {},
     });
 
     expect(notifications.some((item) => item.includes("reloaded"))).toBe(true);

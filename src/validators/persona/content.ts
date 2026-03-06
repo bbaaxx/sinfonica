@@ -259,7 +259,7 @@ export const validatePersonaContent = (content: string): ValidationResult => {
   }
 
   const inlineCodeMatches = [...scanned.matchAll(/`([^`]+)`/g)];
-  if (inlineCodeMatches.some((match) => match[1].includes(">"))) {
+  if (inlineCodeMatches.some((match) => /^\s*[>$#]\s+/.test(match[1]))) {
     warnings.push(issue("PP-04", "WARN", "Inline code blocks should not include prompt characters"));
   }
 

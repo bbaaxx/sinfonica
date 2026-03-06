@@ -77,6 +77,30 @@ const writeDispatch = async (cwd: string, sessionId: string, delegate: string): 
   );
 };
 
+const writeFrontmatterWorkflowSession = async (cwd: string, sessionId: string): Promise<void> => {
+  const sessionDir = join(cwd, ".sinfonica", "handoffs", sessionId);
+  await mkdir(sessionDir, { recursive: true });
+  await writeFile(
+    join(sessionDir, "workflow.md"),
+    [
+      "---",
+      "workflow_id: create-spec",
+      "workflow_status: created",
+      "current_step: 1-analyze-prd",
+      "current_step_index: 1",
+      "total_steps: 4",
+      `session_id: ${sessionId}`,
+      "created_at: 2026-03-05T00:00:00.000Z",
+      "updated_at: 2026-03-05T00:00:00.000Z",
+      "---",
+      "",
+      "## Goal",
+      "Draft technical specification for a unix time MCP service.",
+    ].join("\n"),
+    "utf8"
+  );
+};
+
 const writeReturnWithArtifacts = async (cwd: string, sessionId: string, artifacts: string[]): Promise<void> => {
   const sessionDir = join(cwd, ".sinfonica", "handoffs", sessionId);
   await mkdir(sessionDir, { recursive: true });
@@ -99,7 +123,6 @@ const writeReturnWithArtifacts = async (cwd: string, sessionId: string, artifact
 
 const createApiHarness = () => {
   const handlers = new Map<string, RegisteredEventHandler[]>();
-  const messageRenderers = new Map<string, unknown>();
   const sentMessages: SentMessage[] = [];
 
   const api: ExtensionAPI = {
@@ -111,9 +134,6 @@ const createApiHarness = () => {
       current.push(handler as RegisteredEventHandler);
       handlers.set(event, current);
     },
-    registerMessageRenderer: (customType, renderer) => {
-      messageRenderers.set(customType, renderer);
-    },
     sendMessage: (message) => {
       sentMessages.push({
         customType: message.customType,
@@ -124,7 +144,7 @@ const createApiHarness = () => {
     },
   };
 
-  return { api, handlers, sentMessages, messageRenderers };
+  return { api, handlers, sentMessages };
 };
 
 afterEach(async () => {
@@ -149,7 +169,6 @@ describe("pi extension phase 5 status and context injection", () => {
     const toolResultHandler = harness.handlers.get("tool_result")?.[0];
     const agentEndHandler = harness.handlers.get("agent_end")?.[0];
 
-    expect(harness.messageRenderers.has("sinfonica:status")).toBe(true);
     expect(sessionStartHandler).toBeDefined();
     expect(toolResultHandler).toBeDefined();
     expect(agentEndHandler).toBeDefined();
@@ -222,5 +241,25 @@ describe("pi extension phase 5 status and context injection", () => {
     const result = await beforeAgentStartHandler?.({ type: "before_agent_start", prompt: "hello", cwd });
 
     expect(result).toBeUndefined();
+  });
+
+  it("injects workflow discipline context for created frontmatter sessions", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260305-000300";
+
+    await writeFrontmatterWorkflowSession(cwd, sessionId);
+
+    const harness = createApiHarness();
+    registerSinfonicaExtension(harness.api);
+
+    const beforeAgentStartHandler = harness.handlers.get("before_agent_start")?.[0];
+    expect(beforeAgentStartHandler).toBeDefined();
+
+    const result = await beforeAgentStartHandler?.({ type: "before_agent_start", prompt: "continue", cwd });
+    const content = ((result as { message?: { content?: string } }).message?.content ?? "") as string;
+    expect(content).toContain("Workflow: create-spec");
+    expect(content).toContain("Status: created");
+    expect(content).toContain("Step: 1/4");
+    expect(content).toContain("Workflow Discipline:");
   });
 });

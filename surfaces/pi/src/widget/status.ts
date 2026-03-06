@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { readWorkflowState } from "../workflow-state.ts";
 
-const ACTIVE_STATUSES = ["in-progress", "pending", "blocked", "active"];
+const ACTIVE_STATUSES = ["created", "in-progress", "pending", "blocked", "active"];
 
 export type WorkflowStatusPayload = {
   sessionId: string;
@@ -17,7 +17,7 @@ type WidgetMessage = {
   customType: string;
   content: string;
   details?: unknown;
-  display?: "hidden" | "inline" | "bubble";
+  display: boolean;
 };
 
 type StatusEvent = Record<string, unknown> & { cwd?: string };
@@ -25,9 +25,8 @@ type StatusEvent = Record<string, unknown> & { cwd?: string };
 type StatusEventName = "session_start" | "agent_end" | "tool_result" | "session_compact" | "session_switch";
 
 type StatusWidgetApi = {
-  on?: (event: StatusEventName, handler: (event: StatusEvent, ctx?: { cwd?: string }) => void | Promise<void>) => void;
-  registerMessageRenderer?: (customType: string, renderer: (message: { details?: unknown; content?: unknown }) => unknown) => void;
-  sendMessage?: (message: WidgetMessage) => void;
+  on: (event: StatusEventName, handler: (event: StatusEvent, ctx?: { cwd?: string }) => void | Promise<void>) => void;
+  sendMessage: (message: WidgetMessage) => void;
 };
 
 const deriveWorkflowIdFromSourcePlan = (sourcePlanRaw: string): string => {
@@ -41,6 +40,11 @@ const deriveWorkflowIdFromSourcePlan = (sourcePlanRaw: string): string => {
 };
 
 const extractWorkflowId = (rawWorkflow: string, sessionId: string): string => {
+  const frontmatterWorkflowMatch = rawWorkflow.match(/^workflow_id:\s*(.+)$/im);
+  if (frontmatterWorkflowMatch && frontmatterWorkflowMatch[1].trim().length > 0) {
+    return frontmatterWorkflowMatch[1].trim();
+  }
+
   const workflowMatch = rawWorkflow.match(/-\s*Workflow:\s*`?([^`\n]+)`?\s*$/im);
   if (workflowMatch && workflowMatch[1].trim().length > 0) {
     return workflowMatch[1].trim();
@@ -131,39 +135,17 @@ export const registerStatusWidget = (pi: StatusWidgetApi, options: { cwd?: strin
     }
 
     lastSent = signature;
-    if (pi.sendMessage) {
-      pi.sendMessage({
-        customType: "sinfonica:status",
-        content: formatStatusLine(status),
-        details: status,
-        display: "inline",
-      });
-    }
+    pi.sendMessage({
+      customType: "sinfonica:status",
+      content: formatStatusLine(status),
+      details: status,
+      display: true,
+    });
   };
-
-  pi.registerMessageRenderer?.("sinfonica:status", (message) => {
-    const details = message.details;
-    if (!details || typeof details !== "object") {
-      if (typeof message.content === "string") {
-        return message.content;
-      }
-      return undefined;
-    }
-    const payload = details as Partial<WorkflowStatusPayload>;
-    if (
-      typeof payload.workflowId !== "string" ||
-      typeof payload.currentStep !== "number" ||
-      typeof payload.totalSteps !== "number" ||
-      typeof payload.status !== "string"
-    ) {
-      return undefined;
-    }
-    return formatStatusLine(payload as WorkflowStatusPayload);
-  });
 
   const events: StatusEventName[] = ["session_start", "tool_result", "agent_end", "session_compact", "session_switch"];
   for (const eventName of events) {
-    pi.on?.(eventName, async (event, ctx) => {
+    pi.on(eventName, async (event, ctx) => {
       const nextCwd =
         typeof ctx?.cwd === "string" && ctx.cwd.trim().length > 0
           ? ctx.cwd

@@ -1,7 +1,7 @@
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { validateHandoffEnvelope, type HandoffValidationResult } from "../../../src/handoff/validator.js";
+import { validateHandoffEnvelope, type HandoffValidationResult } from "./handoff-validator.js";
 
 export type ReturnDecision = "approve" | "request-revision";
 

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,10 +7,12 @@ const cliDir = resolve(rootDir, "dist/cli");
 
 await mkdir(cliDir, { recursive: true });
 
+const cliJsPath = resolve(cliDir, "index.js");
 await writeFile(
-  resolve(cliDir, "index.js"),
+  cliJsPath,
   "#!/usr/bin/env node\nimport \"../src/cli/index.js\";\n"
 );
+await chmod(cliJsPath, 0o755);
 
 await writeFile(
   resolve(cliDir, "index.d.ts"),

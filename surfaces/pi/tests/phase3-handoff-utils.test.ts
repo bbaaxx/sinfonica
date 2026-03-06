@@ -150,4 +150,35 @@ describe("pi extension workflow state reader", () => {
     expect(state.totalSteps).toBe(4);
     expect(state.status).toBe("in-progress");
   });
+
+  it("extracts state from workflow frontmatter format", async () => {
+    const cwd = await makeTempDir();
+    const sessionId = "s-20260305-777777";
+    const sessionDir = join(cwd, ".sinfonica", "handoffs", sessionId);
+    await mkdir(sessionDir, { recursive: true });
+    await writeFile(
+      join(sessionDir, "workflow.md"),
+      [
+        "---",
+        "workflow_id: create-spec",
+        "workflow_status: created",
+        "current_step: 1-analyze-prd",
+        "current_step_index: 1",
+        "total_steps: 4",
+        `session_id: ${sessionId}`,
+        "created_at: 2026-03-05T00:00:00.000Z",
+        "updated_at: 2026-03-05T00:00:00.000Z",
+        "---",
+        "",
+        "## Goal",
+        "Draft technical specification.",
+      ].join("\n"),
+      "utf8"
+    );
+
+    const state = await readWorkflowState(cwd, sessionId);
+    expect(state.currentStep).toBe(1);
+    expect(state.totalSteps).toBe(4);
+    expect(state.status).toBe("created");
+  });
 });

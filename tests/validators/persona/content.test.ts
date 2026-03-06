@@ -138,10 +138,12 @@ describe("validatePersonaContent", () => {
     const todo = `${validContent}\nTODO: remove\n`;
     const path = `${validContent}\nPath: /Users/example/repo\n`;
     const prompt = `${validContent}\nUse \`> run\`\n`;
+    const angleBrackets = `${validContent}\nUse file \`return-<NN>-coda.md\`\n`;
 
     expect(validatePersonaContent(xml).errors.some((x) => x.ruleId === "PP-01")).toBe(true);
     expect(validatePersonaContent(todo).warnings.some((x) => x.ruleId === "PP-02")).toBe(true);
     expect(validatePersonaContent(path).errors.some((x) => x.ruleId === "PP-03")).toBe(true);
     expect(validatePersonaContent(prompt).warnings.some((x) => x.ruleId === "PP-04")).toBe(true);
+    expect(validatePersonaContent(angleBrackets).warnings.some((x) => x.ruleId === "PP-04")).toBe(false);
   });
 });
