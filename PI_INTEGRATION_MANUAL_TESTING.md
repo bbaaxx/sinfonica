@@ -548,6 +548,26 @@ After completing all scenarios, verify these core acceptance criteria:
 3. Check for "Phase map cache cleared" in notification
 4. Restart Pi session if needed
 
+### Tool Validation Errors
+
+**Symptoms**: "Invalid workflow type" or "Invalid decision" errors
+
+**Cause**: The LLM may append extra text to tool parameters (e.g., `"dev-story} DONE 🎉"`) instead of sending just the value.
+
+**Solution**: 
+- The extension now validates inputs and returns clear error messages
+- Error message will show: `Invalid workflow type "X". Valid types are: create-prd, create-spec, dev-story, code-review.`
+- If this happens, try rephrasing your request or starting a fresh conversation
+- This is an LLM behavior issue, not a bug in the extension
+
+**Example Error**:
+```
+Invalid workflow type "dev-story} DONE 🎉 The dev-story workflow has been started successfully.".
+Valid types are: create-prd, create-spec, dev-story, code-review.
+```
+
+**Workaround**: Start a new conversation turn or explicitly state: "Call sinfonica_start_workflow with workflowType set to exactly 'dev-story' with no additional text."
+
 ---
 
 ## Test Results Template
