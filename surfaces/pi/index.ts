@@ -558,7 +558,7 @@ export default function registerSinfonicaExtension(pi: ExtensionAPI): void {
   pi.registerTool<StartWorkflowParamsType>({
     name: "sinfonica_start_workflow",
     label: "Start Sinfonica Workflow",
-    description: "Start a Sinfonica workflow by delegating to the Sinfonica CLI.",
+    description: "Start a Sinfonica workflow. Valid workflow types: create-prd, create-spec, dev-story, code-review.",
     parameters: StartWorkflowParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       try {
